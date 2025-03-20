@@ -1,0 +1,6 @@
+com\optimization\CylinderPlacementOptimizer.class
+com\optimization\CylinderPlacementVisualizer.class
+com\optimization\CylinderOptimizer.class
+com\optimization\CylinderPlacementGUI$1.class
+com\optimization\CylinderPlacementGUI.class
+com\optimization\CylinderPlacementOptimizer$CylinderPosition.class
