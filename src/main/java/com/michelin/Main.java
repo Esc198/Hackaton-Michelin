@@ -1,5 +1,6 @@
 package com.michelin;
 
+import java.util.Arrays;
 import java.util.List;
 
 import com.michelin.Optimization.AbstractOptimization;
@@ -52,10 +53,35 @@ public class Main extends Application {
             controls.setMaxWidth(200);
             controls.setAlignment(Pos.TOP_RIGHT);
 
-            // Create optimization type dropdown
-            ComboBox<String> optimizationDropdown = new ComboBox<>();
-            optimizationDropdown.getItems().addAll("Hexagonal", "Square Grid");
-            optimizationDropdown.setValue("Hexagonal");
+            // Create optimization type dropdown with static list of implementations
+            ComboBox<Class<? extends AbstractOptimization>> optimizationDropdown = new ComboBox<>();
+            List<Class<? extends AbstractOptimization>> optimizationClasses = Arrays.asList(
+                HexagonalOptimization.class,
+                SquareGridOptimization.class
+
+
+                // Add more optimization classes here as they are implemented
+            );
+            
+            optimizationDropdown.getItems().addAll(optimizationClasses);
+            if (!optimizationClasses.isEmpty()) {
+                optimizationDropdown.setValue(optimizationClasses.get(0));
+            }
+            
+            // Custom cell factory to show simple class names
+            optimizationDropdown.setCellFactory(p -> new javafx.scene.control.ListCell<Class<? extends AbstractOptimization>>() {
+                @Override
+                protected void updateItem(Class<? extends AbstractOptimization> item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (item != null && !empty) {
+                        setText(item.getSimpleName());
+                    } else {
+                        setText(null);
+                    }
+                }
+            });
+            
+            optimizationDropdown.setButtonCell(optimizationDropdown.getCellFactory().call(null));
 
             // Add sliders for parameters
             Slider radiusSlider = new Slider(20, 200, radius);
@@ -128,58 +154,56 @@ public class Main extends Application {
                 gc.fillRect(0, 0, newWidth, newHeight);
                 gc.strokeRect(0, 0, newWidth, newHeight);
                 
-                // Create optimization based on selected type
-                if (optimizationDropdown.getValue().equals("Hexagonal")) {
-                    optimizationMethod = new HexagonalOptimization(
-                        (float)radiusSlider.getValue(),
-                        (float)newWidth,
-                        (float)newHeight, 
-                        (float)distBorderSlider.getValue(),
-                        (float)distTireSlider.getValue()
-                    );
-                } else {
-                    optimizationMethod = new SquareGridOptimization(
+                try {
+                    // Create optimization based on selected class
+                    Class<? extends AbstractOptimization> selectedClass = optimizationDropdown.getValue();
+                    optimizationMethod = selectedClass.getDeclaredConstructor(
+                        float.class, float.class, float.class, float.class, float.class
+                    ).newInstance(
                         (float)radiusSlider.getValue(),
                         (float)newWidth,
                         (float)newHeight,
                         (float)distBorderSlider.getValue(),
                         (float)distTireSlider.getValue()
                     );
-                }
-                
-                optimizationMethod.setup();
-                
-                // Create animation timer to handle continuous optimization
-                AnimationTimer timer = new AnimationTimer() {
-                    @Override
-                    public void handle(long now) {
-                        // Run one optimization step
-                        optimizationMethod.run();
-                        
-                        // Clear and redraw
-                        gc.clearRect(0, 0, newWidth, newHeight);
-                        gc.setFill(Color.LIGHTGRAY);
-                        gc.fillRect(0, 0, newWidth, newHeight);
-                        gc.strokeRect(0, 0, newWidth, newHeight);
-                        
-                        // Draw current state
-                        List<Tire> currentTires = optimizationMethod.getResult();
-                        for (Tire tire : currentTires) {
-                            tire.draw(gc);
-                        }
+                    
+                    optimizationMethod.setup();
+                    
+                    // Create animation timer to handle continuous optimization
+                    AnimationTimer timer = new AnimationTimer() {
+                        @Override
+                        public void handle(long now) {
+                            // Run one optimization step
+                            optimizationMethod.run();
+                            
+                            // Clear and redraw
+                            gc.clearRect(0, 0, newWidth, newHeight);
+                            gc.setFill(Color.LIGHTGRAY);
+                            gc.fillRect(0, 0, newWidth, newHeight);
+                            gc.strokeRect(0, 0, newWidth, newHeight);
+                            
+                            // Draw current state
+                            List<Tire> currentTires = optimizationMethod.getResult();
+                            for (Tire tire : currentTires) {
+                                tire.draw(gc);
+                            }
 
-                        // Check if optimization is complete
-                        if (optimizationMethod.isFinished()) {
-                            this.stop();
+                            // Check if optimization is complete
+                            if (optimizationMethod.isFinished()) {
+                                this.stop();
+                            }
+                            
+                            // Ensure controls stay visible
+                            controls.toFront();
                         }
-                        
-                        // Ensure controls stay visible
-                        controls.toFront();
-                    }
-                };
-                
-                currentTimer[0] = timer;
-                timer.start();
+                    };
+                    
+                    currentTimer[0] = timer;
+                    timer.start();
+                    
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
                 
                 // Ensure controls are visible by bringing them to front
                 controls.toFront();
@@ -203,7 +227,6 @@ public class Main extends Application {
         try {
             launch(args);
         } catch (Exception e) {
-            e.printStackTrace();
             System.exit(1);
         }
     }
