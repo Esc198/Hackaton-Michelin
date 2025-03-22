@@ -1,10 +1,12 @@
 package com.michelin;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
 
 import com.michelin.Optimization.AbstractOptimization;
 import com.michelin.Optimization.HexagonalOptimization;
+import com.michelin.Optimization.MaxForceOptimization;
 import com.michelin.Optimization.SquareGridOptimization;
 import com.michelin.utils.Tire;
 
@@ -28,6 +30,8 @@ import javafx.stage.Stage;
 public class Main extends Application {
 
     private AbstractOptimization optimizationMethod;
+    private Label tireCountLabel;
+
     @Override
     public void start(Stage primaryStage) {
         try {
@@ -57,8 +61,8 @@ public class Main extends Application {
             ComboBox<Class<? extends AbstractOptimization>> optimizationDropdown = new ComboBox<>();
             List<Class<? extends AbstractOptimization>> optimizationClasses = Arrays.asList(
                 HexagonalOptimization.class,
-                SquareGridOptimization.class
-
+                SquareGridOptimization.class,
+                MaxForceOptimization.class
 
                 // Add more optimization classes here as they are implemented
             );
@@ -104,6 +108,10 @@ public class Main extends Application {
             distTireSlider.setShowTickLabels(true);
             distTireSlider.setShowTickMarks(true);
 
+            // Crear el label antes del regenerateBtn
+            tireCountLabel = new Label("Neumáticos: 0");
+            tireCountLabel.setStyle("-fx-font-weight: bold;");
+
             Button regenerateBtn = new Button("Regenerate");
 
             controls.getChildren().addAll(
@@ -113,6 +121,7 @@ public class Main extends Application {
                 new Label("Container Height:"), heightSlider,
                 new Label("Border Distance:"), distBorderSlider,
                 new Label("Tire Distance:"), distTireSlider,
+                tireCountLabel,
                 regenerateBtn
             );
 
@@ -182,11 +191,28 @@ public class Main extends Application {
                             gc.fillRect(0, 0, newWidth, newHeight);
                             gc.strokeRect(0, 0, newWidth, newHeight);
                             
-                            // Draw current state
+                            // Draw current state and count valid tires
                             List<Tire> currentTires = optimizationMethod.getResult();
+                            int validTires = 0;
+                            
                             for (Tire tire : currentTires) {
+                                // Verificar si la rueda está completamente dentro del contenedor
+                                double x = tire.getPositionX();
+                                double y = tire.getPositionY();
+                                double r = tire.getRadius();
+                                
+                                if (x - r >= distBorderSlider.getValue() && 
+                                    x + r <= widthSlider.getValue() - distBorderSlider.getValue() &&
+                                    y - r >= distBorderSlider.getValue() && 
+                                    y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
+                                    validTires++;
+                                }
+                                
                                 tire.draw(gc);
                             }
+                            
+                            // Actualizar el contador
+                            tireCountLabel.setText("Neumáticos válidos: " + validTires);
 
                             // Check if optimization is complete
                             if (optimizationMethod.isFinished()) {
@@ -201,7 +227,7 @@ public class Main extends Application {
                     currentTimer[0] = timer;
                     timer.start();
                     
-                } catch (Exception ex) {
+                } catch (IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException ex) {
                     ex.printStackTrace();
                 }
                 
