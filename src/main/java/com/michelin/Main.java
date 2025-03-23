@@ -221,6 +221,8 @@ public class Main extends Application {
 
             // Add regeneration handler
             regenerateBtn.setOnAction(e -> {
+                // Llamar a resetTireCount antes de cualquier otra acción
+                Tire.resetTireCount();
                 // Stop current optimization if running
                 if (currentTimer[0] != null) {
                     currentTimer[0].stop();
