@@ -2,8 +2,6 @@ package com.michelin.utils;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 public class Tire {
     private static int tireCount = 0; // Variable estática para contar las ruedas
@@ -84,17 +82,8 @@ public class Tire {
             double endX = positionX + Math.cos(angle) * (radius - 20);
             double endY = positionY + Math.sin(angle) * (radius - 20);
             gc.strokeLine(startX, startY, endX, endY);
-        }
 
-        // Draw tire number in the center
-        gc.setFill(Color.WHITE);
-        gc.setStroke(Color.BLACK);
-        gc.setLineWidth(1);
-        gc.setFont(Font.font("Algerian", FontWeight.BOLD, radius / 2)); // Tamaño de fuente dinámico
-        double textWidth = gc.getFont().getSize() / 2 * String.valueOf(tireNumber).length();
-        gc.fillText(String.valueOf(tireNumber), positionX - textWidth / 2, positionY + gc.getFont().getSize() / 4); // Centrar
-                                                                                                                    // el
-                                                                                                                    // texto
+        }
     }
 
     @Override
