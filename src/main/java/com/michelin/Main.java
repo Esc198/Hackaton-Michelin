@@ -50,6 +50,7 @@ public class Main extends Application {
             // Draw container rectangle with light gray fill
             gc.setFill(Color.LIGHTGRAY);
             gc.fillRect(0, 0, width, height);
+            gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
             gc.strokeRect(0, 0, width, height);
 
             // Create control panel
@@ -205,7 +206,9 @@ public class Main extends Application {
                 gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
                 gc.setFill(Color.LIGHTGRAY);
                 gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
                 gc.strokeRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                drawAxes(gc, canvas.getWidth(), canvas.getHeight());
             });
 
             heightSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -213,7 +216,9 @@ public class Main extends Application {
                 gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
                 gc.setFill(Color.LIGHTGRAY);
                 gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
                 gc.strokeRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                drawAxes(gc, canvas.getWidth(), canvas.getHeight());
             });
 
             // Reference to current animation timer to be able to stop it
@@ -237,7 +242,11 @@ public class Main extends Application {
                 gc.clearRect(0, 0, newWidth, newHeight);
                 gc.setFill(Color.LIGHTGRAY);
                 gc.fillRect(0, 0, newWidth, newHeight);
+                gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
                 gc.strokeRect(0, 0, newWidth, newHeight);
+
+                // Borrar los ejes antes de iniciar la optimización
+                clearAxes(gc, newWidth, newHeight);
 
                 try {
                     // Create optimization based on selected class
@@ -263,6 +272,7 @@ public class Main extends Application {
                             gc.clearRect(0, 0, newWidth, newHeight);
                             gc.setFill(Color.LIGHTGRAY);
                             gc.fillRect(0, 0, newWidth, newHeight);
+                            gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
                             gc.strokeRect(0, 0, newWidth, newHeight);
 
                             // Draw current state and count valid tires
@@ -318,10 +328,54 @@ public class Main extends Application {
             primaryStage.setTitle("Aplicación Michelin");
             primaryStage.setScene(scene);
             primaryStage.show();
+
+            // Dibujar los ejes después de mostrar la escena para asegurar que estén al
+            // frente
+            drawAxes(gc, width, height);
         } catch (Exception e) {
             e.printStackTrace();
             Platform.exit();
         }
+    }
+
+    // Nueva función para dibujar los ejes
+    private void drawAxes(GraphicsContext gc, double width, double height) {
+        double arrowLength = 50; // 5 cm en píxeles (asumiendo 10 píxeles por cm)
+        double centerY = height - 10; // Justo en la línea del borde inferior
+
+        gc.setLineWidth(3); // Hacer las flechas más gruesas
+
+        // Eje X
+        gc.setStroke(Color.RED);
+        gc.strokeLine(width / 2 - arrowLength, centerY, width / 2 + arrowLength, centerY);
+        gc.strokeLine(width / 2 + arrowLength - 10, centerY - 5, width / 2 + arrowLength, centerY);
+        gc.strokeLine(width / 2 + arrowLength - 10, centerY + 5, width / 2 + arrowLength, centerY);
+
+        // Eje Y
+        gc.setStroke(Color.BLUE);
+        gc.strokeLine(width / 2, centerY, width / 2, centerY - arrowLength);
+        gc.strokeLine(width / 2 - 5, centerY - arrowLength + 10, width / 2, centerY - arrowLength);
+        gc.strokeLine(width / 2 + 5, centerY - arrowLength + 10, width / 2, centerY - arrowLength);
+    }
+
+    // Nueva función para borrar los ejes
+    private void clearAxes(GraphicsContext gc, double width, double height) {
+        double arrowLength = 50; // 5 cm en píxeles (asumiendo 10 píxeles por cm)
+        double centerY = height - 10; // Justo en la línea del borde inferior
+
+        gc.setLineWidth(3); // Hacer las flechas más gruesas
+
+        // Eje X
+        gc.setStroke(Color.LIGHTGRAY);
+        gc.strokeLine(width / 2 - arrowLength, centerY, width / 2 + arrowLength, centerY);
+        gc.strokeLine(width / 2 + arrowLength - 10, centerY - 5, width / 2 + arrowLength, centerY);
+        gc.strokeLine(width / 2 + arrowLength - 10, centerY + 5, width / 2 + arrowLength, centerY);
+
+        // Eje Y
+        gc.setStroke(Color.LIGHTGRAY);
+        gc.strokeLine(width / 2, centerY, width / 2, centerY - arrowLength);
+        gc.strokeLine(width / 2 - 5, centerY - arrowLength + 10, width / 2, centerY - arrowLength);
+        gc.strokeLine(width / 2 + 5, centerY - arrowLength + 10, width / 2, centerY - arrowLength);
     }
 
     public static void main(String[] args) {
