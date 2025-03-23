@@ -2,6 +2,7 @@ package com.michelin;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 import com.michelin.Optimization.AbstractOptimization;
@@ -27,6 +28,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
 public class Main extends Application {
@@ -226,6 +229,7 @@ public class Main extends Application {
 
             // Add regeneration handler
             regenerateBtn.setOnAction(e -> {
+
                 // Llamar a resetTireCount antes de cualquier otra acción
                 Tire.resetTireCount();
                 // Stop current optimization if running
@@ -300,6 +304,9 @@ public class Main extends Application {
 
                             // Check if optimization is complete
                             if (optimizationMethod.isFinished()) {
+                                // Dibujar los números en las ruedas
+                                drawNumber(gc, currentTires, (int) newWidth, (int) newHeight,
+                                        (int) distBorderSlider.getValue());
                                 this.stop();
                             }
 
@@ -376,6 +383,40 @@ public class Main extends Application {
         gc.strokeLine(width / 2, centerY, width / 2, centerY - arrowLength);
         gc.strokeLine(width / 2 - 5, centerY - arrowLength + 10, width / 2, centerY - arrowLength);
         gc.strokeLine(width / 2 + 5, centerY - arrowLength + 10, width / 2, centerY - arrowLength);
+    }
+
+    // Nueva función para dibujar números en las ruedas
+    public static void drawNumber(GraphicsContext gc, List<Tire> tires, int width, int height, int distBorder) {
+        if (tires == null || tires.isEmpty()) {
+            return;
+        }
+
+        // Ordenar las ruedas por posición X y luego por posición Y
+        tires.sort(Comparator.comparingDouble(Tire::getPositionY)
+                .thenComparingDouble(Tire::getPositionX));
+
+        // Asignar números a las ruedas en orden de preferencia
+        for (int i = 0; i < tires.size(); i++) {
+            Tire tire = tires.get(i);
+            // Verificar la posición de la rueda
+            double x = tire.getPositionX();
+            double y = tire.getPositionY();
+            double r = tire.getRadius();
+
+            if (x - r >= distBorder &&
+                    x + r <= width - distBorder &&
+                    y - r >= distBorder &&
+                    y + r <= height - distBorder) {
+                tire.draw(gc);
+                gc.setFill(Color.WHITE);
+                gc.setStroke(Color.BLACK);
+                gc.setLineWidth(1);
+                gc.setFont(Font.font("Algerian", FontWeight.BOLD, r / 2)); // Tamaño de fuente dinámico
+                double textWidth = gc.getFont().getSize() / 2 * String.valueOf(i + 1).length();
+                double textHeight = gc.getFont().getSize() / 2;
+                gc.fillText(String.valueOf(i + 1), x - textWidth / 2, y + textHeight / 2);
+            }
+        }
     }
 
     public static void main(String[] args) {
