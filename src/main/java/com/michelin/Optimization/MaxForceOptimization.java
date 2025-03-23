@@ -77,10 +77,10 @@ public class MaxForceOptimization implements AbstractOptimization {
             for (int j = 0; j < tires.size(); j++) {
                 if (i == j) continue;
                 PhysicTire tire2 = tires.get(j);
-                float dx = (float)(tire1.getX() - tire2.getX());
-                float dy = (float)(tire1.getY() - tire2.getY());
+                float dx = tire1.getX() - tire2.getX();
+                float dy = tire1.getY() - tire2.getY();
                 float distance = (float)Math.sqrt(dx * dx + dy * dy);
-                float minDistance = (float)(tireRadius + tireRadius + distTire);
+                float minDistance = (float)(tireRadius * 2 + distTire);
                 if (distance < minDistance) {
                     // Hay superposición, calcular fuerza de repulsión
                     float overlap = minDistance - distance;
@@ -96,31 +96,24 @@ public class MaxForceOptimization implements AbstractOptimization {
                     delta = Math.max(delta, overlap);
                 }
             }
-            // Fuerza de contención dentro del contenedor
-            float x = tire1.getX();
-            float y = tire1.getY();
+            // Corregir las fuerzas para los bordes izquierdo y superior
+            float x = (float)tire1.getX();
+            float y = (float)tire1.getY();
             float r = tireRadius;
             
-            // Comprobar límites del contenedor
             if (x - r < distBorder) {
-                float overlap = distBorder - (x - r);
-                fx += overlap * wallRepulsionForce;
-                delta = Math.max(delta, overlap);
+                // Cambiar el signo: la fuerza debe empujar hacia la derecha
+                fx += Math.abs(distBorder - (x - r)) * wallRepulsionForce;
             }
             if (x + r > containerWidth - distBorder) {
-                float overlap = (x + r) - (containerWidth - distBorder);
-                fx -= overlap * wallRepulsionForce;
-                delta = Math.max(delta, overlap);
+                fx -= ((x + r) - (containerWidth - distBorder)) * wallRepulsionForce;
             }
             if (y - r < distBorder) {
-                float overlap = distBorder - (y - r);
-                fy += overlap * wallRepulsionForce;
-                delta = Math.max(delta, overlap);
+                // Cambiar el signo: la fuerza debe empujar hacia abajo
+                fy += Math.abs(distBorder - (y - r)) * wallRepulsionForce;
             }
             if (y + r > containerHeight - distBorder) {
-                float overlap = (y + r) - (containerHeight - distBorder);
-                fy -= overlap * wallRepulsionForce;
-                delta = Math.max(delta, overlap);
+                fy -= ((y + r) - (containerHeight - distBorder)) * wallRepulsionForce;
             }
             // Limitar las fuerzas al máximo permitido
             float forceMagnitude = (float)Math.sqrt(fx * fx + fy * fy);

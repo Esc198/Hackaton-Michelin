@@ -63,21 +63,21 @@ public class Tire {
     // Drawable method
     public void draw(GraphicsContext gc) {
         gc.setFill(color);
-        gc.fillOval(positionX, positionY, radius * 2, radius * 2);
+        gc.fillOval(positionX - radius, positionY - radius, radius * 2, radius * 2);
         
         // Add some details to make it look more like a tire
         gc.setStroke(Color.GRAY);
         gc.setLineWidth(5);
-        gc.strokeOval(positionX + 5, positionY + 5, radius * 2 - 10, radius * 2 - 10);
+        gc.strokeOval(positionX - radius + 5, positionY - radius + 5, radius * 2 - 10, radius * 2 - 10);
         
         // Add tread pattern
         gc.setLineWidth(2);
         for (int i = 0; i < 8; i++) {
             double angle = i * Math.PI / 4;
-            double startX = positionX + radius + Math.cos(angle) * (radius - 10);
-            double startY = positionY + radius + Math.sin(angle) * (radius - 10);
-            double endX = positionX + radius + Math.cos(angle) * (radius - 20);
-            double endY = positionY + radius + Math.sin(angle) * (radius - 20);
+            double startX = positionX + Math.cos(angle) * (radius - 10);
+            double startY = positionY + Math.sin(angle) * (radius - 10);
+            double endX = positionX + Math.cos(angle) * (radius - 20);
+            double endY = positionY + Math.sin(angle) * (radius - 20);
             gc.strokeLine(startX, startY, endX, endY);
         }
     }

@@ -44,8 +44,8 @@ public class HexagonalOptimization implements AbstractOptimization {
 
         // Calculate starting positions to center the pattern
         // Add radius to ensure minimum distance from walls
-        float startX = distBorder;
-        float startY = distBorder;
+        float startX = distBorder + radius;
+        float startY = distBorder + radius;
 
         // Create hexagonal arrangement
         for (int row = 0; row < numRows; row++) {
@@ -57,8 +57,8 @@ public class HexagonalOptimization implements AbstractOptimization {
                 float y = startY + row * verticalSpacing;
                 
                 // Only add tire if it fits within the effective area
-                if (x + radius <= width - (distBorder + radius) && 
-                    y + radius <= height - (distBorder + radius)) {
+                if (x + radius <= width - (distBorder ) && 
+                    y + radius <= height - (distBorder)) {
                     tires.add(new Tire("Michelin Pilot Sport", radius, x, y));
                 }
             }

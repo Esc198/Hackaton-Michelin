@@ -40,8 +40,8 @@ public class SquareGridOptimization implements AbstractOptimization {
         int tiresPerColumn = (int)(effectiveHeight / tireSpacing);
         
         // Calculate starting position to center the grid
-        float startX = distBorder;
-        float startY = distBorder;
+        float startX = distBorder + radius;
+        float startY = distBorder + radius;
 
         // Place tires in a grid pattern
         for (int row = 0; row < tiresPerColumn; row++) {
