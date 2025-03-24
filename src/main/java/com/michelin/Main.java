@@ -24,6 +24,8 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Slider;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -39,6 +41,7 @@ public class Main extends Application {
     private Label tireCountLabel;
     private Label occupancyLabel = new Label("Ocupación: 0%");
     private static ListView<String> coordinatesListView = new ListView<>();
+
     @Override
     public void start(Stage primaryStage) {
         try {
@@ -65,13 +68,25 @@ public class Main extends Application {
             controls.setMaxWidth(200);
             controls.setAlignment(Pos.TOP_RIGHT);
             controls.getChildren().add(occupancyLabel);
-            // Crear el contenedor para las coordenadas de las ruedas
+
+            // Create a TabPane
+            TabPane tabPane = new TabPane();
+
+            // Create the controls tab
+            Tab controlsTab = new Tab("Controls", controls);
+            controlsTab.setClosable(false);
+
+            // Create the coordinates tab
             VBox coordinatesBox = new VBox(5, new Label("Coordenadas de las ruedas:"), coordinatesListView);
-            coordinatesBox.setPadding(new Insets(10));
+            coordinatesBox.setPadding(new Insets(20));
             coordinatesBox.setStyle("-fx-background-color: rgba(255,255,255,0.8)");
-            coordinatesBox.setMaxWidth(200);
+            coordinatesBox.setMaxWidth(250);
             coordinatesBox.setAlignment(Pos.TOP_LEFT); // Alinearlo a la izquierda
-            controls.getChildren().add(coordinatesBox);
+            Tab coordinatesTab = new Tab("Coordinates", coordinatesBox);
+            coordinatesTab.setClosable(false);
+
+            // Add tabs to the TabPane
+            tabPane.getTabs().addAll(controlsTab, coordinatesTab);
 
             // Create optimization type dropdown with static list of implementations
             ComboBox<Class<? extends AbstractOptimization>> optimizationDropdown = new ComboBox<>();
@@ -79,8 +94,6 @@ public class Main extends Application {
                     HexagonalOptimization.class,
                     SquareGridOptimization.class,
                     MaxForceOptimization.class
-
-            // Add more optimization classes here as they are implemented
             );
 
             optimizationDropdown.getItems().addAll(optimizationClasses);
@@ -89,18 +102,17 @@ public class Main extends Application {
             }
 
             // Custom cell factory to show simple class names
-            optimizationDropdown
-                    .setCellFactory(p -> new javafx.scene.control.ListCell<Class<? extends AbstractOptimization>>() {
-                        @Override
-                        protected void updateItem(Class<? extends AbstractOptimization> item, boolean empty) {
-                            super.updateItem(item, empty);
-                            if (item != null && !empty) {
-                                setText(item.getSimpleName());
-                            } else {
-                                setText(null);
-                            }
-                        }
-                    });
+            optimizationDropdown.setCellFactory(p -> new javafx.scene.control.ListCell<Class<? extends AbstractOptimization>>() {
+                @Override
+                protected void updateItem(Class<? extends AbstractOptimization> item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (item != null && !empty) {
+                        setText(item.getSimpleName());
+                    } else {
+                        setText(null);
+                    }
+                }
+            });
 
             optimizationDropdown.setButtonCell(optimizationDropdown.getCellFactory().call(null));
 
@@ -136,8 +148,7 @@ public class Main extends Application {
             distTireField.setMaxWidth(60);
 
             // Sync sliders with text fields
-            radiusSlider.valueProperty()
-                    .addListener((obs, oldVal, newVal) -> radiusField.setText(String.valueOf(newVal.intValue())));
+            radiusSlider.valueProperty().addListener((obs, oldVal, newVal) -> radiusField.setText(String.valueOf(newVal.intValue())));
             radiusField.setOnAction(e -> radiusSlider.setValue(Double.parseDouble(radiusField.getText())));
             radiusField.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (!newVal.isEmpty()) {
@@ -145,8 +156,7 @@ public class Main extends Application {
                 }
             });
 
-            widthSlider.valueProperty()
-                    .addListener((obs, oldVal, newVal) -> widthField.setText(String.valueOf(newVal.intValue())));
+            widthSlider.valueProperty().addListener((obs, oldVal, newVal) -> widthField.setText(String.valueOf(newVal.intValue())));
             widthField.setOnAction(e -> widthSlider.setValue(Double.parseDouble(widthField.getText())));
             widthField.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (!newVal.isEmpty()) {
@@ -154,8 +164,7 @@ public class Main extends Application {
                 }
             });
 
-            heightSlider.valueProperty()
-                    .addListener((obs, oldVal, newVal) -> heightField.setText(String.valueOf(newVal.intValue())));
+            heightSlider.valueProperty().addListener((obs, oldVal, newVal) -> heightField.setText(String.valueOf(newVal.intValue())));
             heightField.setOnAction(e -> heightSlider.setValue(Double.parseDouble(heightField.getText())));
             heightField.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (!newVal.isEmpty()) {
@@ -163,8 +172,7 @@ public class Main extends Application {
                 }
             });
 
-            distBorderSlider.valueProperty()
-                    .addListener((obs, oldVal, newVal) -> distBorderField.setText(String.valueOf(newVal.intValue())));
+            distBorderSlider.valueProperty().addListener((obs, oldVal, newVal) -> distBorderField.setText(String.valueOf(newVal.intValue())));
             distBorderField.setOnAction(e -> distBorderSlider.setValue(Double.parseDouble(distBorderField.getText())));
             distBorderField.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (!newVal.isEmpty()) {
@@ -172,8 +180,7 @@ public class Main extends Application {
                 }
             });
 
-            distTireSlider.valueProperty()
-                    .addListener((obs, oldVal, newVal) -> distTireField.setText(String.valueOf(newVal.intValue())));
+            distTireSlider.valueProperty().addListener((obs, oldVal, newVal) -> distTireField.setText(String.valueOf(newVal.intValue())));
             distTireField.setOnAction(e -> distTireSlider.setValue(Double.parseDouble(distTireField.getText())));
             distTireField.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (!newVal.isEmpty()) {
@@ -306,14 +313,12 @@ public class Main extends Application {
                                     validTires++;
                                 }
 
-
                                 tire.draw(gc);
                             }
 
                             // Actualizar el contador
                             tireCountLabel.setText("Neumáticos válidos: " + validTires);
-                            
-                            
+
                             // Calcular la ocupación del contenedor
                             double totalTireArea = 0;
                             for (Tire tire : currentTires) {
@@ -361,8 +366,8 @@ public class Main extends Application {
             });
 
             // Create the scene
-            StackPane root = new StackPane(canvas, controls);
-            StackPane.setAlignment(controls, Pos.CENTER_RIGHT);
+            StackPane root = new StackPane(canvas, tabPane);
+            StackPane.setAlignment(tabPane, Pos.CENTER_RIGHT);
             Scene scene = new Scene(root, width, height);
 
             primaryStage.setTitle("Aplicación Michelin");
@@ -429,6 +434,7 @@ public class Main extends Application {
                 .thenComparingDouble(Tire::getPositionX));
 
         // Asignar números a las ruedas en orden de preferencia
+
         StringBuilder coordinates = new StringBuilder();
         for (int i = 0; i < tires.size(); i++) {
             Tire tire = tires.get(i);
