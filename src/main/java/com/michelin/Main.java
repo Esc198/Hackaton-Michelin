@@ -93,8 +93,7 @@ public class Main extends Application {
             List<Class<? extends AbstractOptimization>> optimizationClasses = Arrays.asList(
                     HexagonalOptimization.class,
                     SquareGridOptimization.class,
-                    MaxForceOptimization.class
-            );
+                    MaxForceOptimization.class);
 
             optimizationDropdown.getItems().addAll(optimizationClasses);
             if (!optimizationClasses.isEmpty()) {
@@ -102,17 +101,18 @@ public class Main extends Application {
             }
 
             // Custom cell factory to show simple class names
-            optimizationDropdown.setCellFactory(p -> new javafx.scene.control.ListCell<Class<? extends AbstractOptimization>>() {
-                @Override
-                protected void updateItem(Class<? extends AbstractOptimization> item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (item != null && !empty) {
-                        setText(item.getSimpleName());
-                    } else {
-                        setText(null);
-                    }
-                }
-            });
+            optimizationDropdown
+                    .setCellFactory(p -> new javafx.scene.control.ListCell<Class<? extends AbstractOptimization>>() {
+                        @Override
+                        protected void updateItem(Class<? extends AbstractOptimization> item, boolean empty) {
+                            super.updateItem(item, empty);
+                            if (item != null && !empty) {
+                                setText(item.getSimpleName());
+                            } else {
+                                setText(null);
+                            }
+                        }
+                    });
 
             optimizationDropdown.setButtonCell(optimizationDropdown.getCellFactory().call(null));
 
@@ -148,7 +148,8 @@ public class Main extends Application {
             distTireField.setMaxWidth(60);
 
             // Sync sliders with text fields
-            radiusSlider.valueProperty().addListener((obs, oldVal, newVal) -> radiusField.setText(String.valueOf(newVal.intValue())));
+            radiusSlider.valueProperty()
+                    .addListener((obs, oldVal, newVal) -> radiusField.setText(String.valueOf(newVal.intValue())));
             radiusField.setOnAction(e -> radiusSlider.setValue(Double.parseDouble(radiusField.getText())));
             radiusField.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (!newVal.isEmpty()) {
@@ -156,7 +157,8 @@ public class Main extends Application {
                 }
             });
 
-            widthSlider.valueProperty().addListener((obs, oldVal, newVal) -> widthField.setText(String.valueOf(newVal.intValue())));
+            widthSlider.valueProperty()
+                    .addListener((obs, oldVal, newVal) -> widthField.setText(String.valueOf(newVal.intValue())));
             widthField.setOnAction(e -> widthSlider.setValue(Double.parseDouble(widthField.getText())));
             widthField.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (!newVal.isEmpty()) {
@@ -164,7 +166,8 @@ public class Main extends Application {
                 }
             });
 
-            heightSlider.valueProperty().addListener((obs, oldVal, newVal) -> heightField.setText(String.valueOf(newVal.intValue())));
+            heightSlider.valueProperty()
+                    .addListener((obs, oldVal, newVal) -> heightField.setText(String.valueOf(newVal.intValue())));
             heightField.setOnAction(e -> heightSlider.setValue(Double.parseDouble(heightField.getText())));
             heightField.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (!newVal.isEmpty()) {
@@ -172,7 +175,8 @@ public class Main extends Application {
                 }
             });
 
-            distBorderSlider.valueProperty().addListener((obs, oldVal, newVal) -> distBorderField.setText(String.valueOf(newVal.intValue())));
+            distBorderSlider.valueProperty()
+                    .addListener((obs, oldVal, newVal) -> distBorderField.setText(String.valueOf(newVal.intValue())));
             distBorderField.setOnAction(e -> distBorderSlider.setValue(Double.parseDouble(distBorderField.getText())));
             distBorderField.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (!newVal.isEmpty()) {
@@ -180,7 +184,8 @@ public class Main extends Application {
                 }
             });
 
-            distTireSlider.valueProperty().addListener((obs, oldVal, newVal) -> distTireField.setText(String.valueOf(newVal.intValue())));
+            distTireSlider.valueProperty()
+                    .addListener((obs, oldVal, newVal) -> distTireField.setText(String.valueOf(newVal.intValue())));
             distTireField.setOnAction(e -> distTireSlider.setValue(Double.parseDouble(distTireField.getText())));
             distTireField.textProperty().addListener((obs, oldVal, newVal) -> {
                 if (!newVal.isEmpty()) {
@@ -327,9 +332,9 @@ public class Main extends Application {
                                 double r = tire.getRadius();
 
                                 if (x - r >= distBorderSlider.getValue() &&
-                                    x + r <= widthSlider.getValue() - distBorderSlider.getValue() &&
-                                    y - r >= distBorderSlider.getValue() &&
-                                    y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
+                                        x + r <= widthSlider.getValue() - distBorderSlider.getValue() &&
+                                        y - r >= distBorderSlider.getValue() &&
+                                        y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
                                     totalTireArea += Math.PI * r * r; // Área de un círculo
                                 }
                             }
@@ -385,42 +390,44 @@ public class Main extends Application {
 
     // Nueva función para dibujar los ejes
     private void drawAxes(GraphicsContext gc, double width, double height) {
-        double arrowLength = 50; // 5 cm en píxeles (asumiendo 10 píxeles por cm)
-        double centerY = height - 10; // Justo en la línea del borde inferior
+        double arrowLength = 60; // 5 cm en píxeles (asumiendo 10 píxeles por cm)
+        double startX = 15; // Ajustar la posición de la línea del borde izquierdo
+        double startY = 15; // Ajustar la posición de la línea del borde superior
 
         gc.setLineWidth(3); // Hacer las flechas más gruesas
 
         // Eje X
         gc.setStroke(Color.RED);
-        gc.strokeLine(width / 2 - arrowLength, centerY, width / 2 + arrowLength, centerY);
-        gc.strokeLine(width / 2 + arrowLength - 10, centerY - 5, width / 2 + arrowLength, centerY);
-        gc.strokeLine(width / 2 + arrowLength - 10, centerY + 5, width / 2 + arrowLength, centerY);
+        gc.strokeLine(startX, startY, startX + arrowLength, startY);
+        gc.strokeLine(startX + arrowLength - 10, startY - 5, startX + arrowLength, startY);
+        gc.strokeLine(startX + arrowLength - 10, startY + 5, startX + arrowLength, startY);
 
         // Eje Y
         gc.setStroke(Color.BLUE);
-        gc.strokeLine(width / 2, centerY, width / 2, centerY - arrowLength);
-        gc.strokeLine(width / 2 - 5, centerY - arrowLength + 10, width / 2, centerY - arrowLength);
-        gc.strokeLine(width / 2 + 5, centerY - arrowLength + 10, width / 2, centerY - arrowLength);
+        gc.strokeLine(startX, startY, startX, startY + arrowLength);
+        gc.strokeLine(startX - 5, startY + arrowLength - 10, startX, startY + arrowLength);
+        gc.strokeLine(startX + 5, startY + arrowLength - 10, startX, startY + arrowLength);
     }
 
     // Nueva función para borrar los ejes
     private void clearAxes(GraphicsContext gc, double width, double height) {
         double arrowLength = 50; // 5 cm en píxeles (asumiendo 10 píxeles por cm)
-        double centerY = height - 10; // Justo en la línea del borde inferior
+        double startX = 10; // Ajustar la posición de la línea del borde izquierdo
+        double startY = 10; // Ajustar la posición de la línea del borde superior
 
         gc.setLineWidth(3); // Hacer las flechas más gruesas
 
         // Eje X
         gc.setStroke(Color.LIGHTGRAY);
-        gc.strokeLine(width / 2 - arrowLength, centerY, width / 2 + arrowLength, centerY);
-        gc.strokeLine(width / 2 + arrowLength - 10, centerY - 5, width / 2 + arrowLength, centerY);
-        gc.strokeLine(width / 2 + arrowLength - 10, centerY + 5, width / 2 + arrowLength, centerY);
+        gc.strokeLine(startX, startY, startX + arrowLength, startY);
+        gc.strokeLine(startX + arrowLength - 10, startY - 5, startX + arrowLength, startY);
+        gc.strokeLine(startX + arrowLength - 10, startY + 5, startX + arrowLength, startY);
 
         // Eje Y
         gc.setStroke(Color.LIGHTGRAY);
-        gc.strokeLine(width / 2, centerY, width / 2, centerY - arrowLength);
-        gc.strokeLine(width / 2 - 5, centerY - arrowLength + 10, width / 2, centerY - arrowLength);
-        gc.strokeLine(width / 2 + 5, centerY - arrowLength + 10, width / 2, centerY - arrowLength);
+        gc.strokeLine(startX, startY, startX, startY + arrowLength);
+        gc.strokeLine(startX - 5, startY + arrowLength - 10, startX, startY + arrowLength);
+        gc.strokeLine(startX + 5, startY + arrowLength - 10, startX, startY + arrowLength);
     }
 
     // Nueva función para dibujar números en las ruedas
@@ -455,7 +462,8 @@ public class Main extends Application {
                 double textWidth = gc.getFont().getSize() / 2 * String.valueOf(i + 1).length();
                 double textHeight = gc.getFont().getSize() / 2;
                 gc.fillText(String.valueOf(i + 1), x - textWidth / 2, y + textHeight / 2);
-                coordinates.append("Rueda " + (i + 1) + ": (" + String.format("%.2f", x) + ", " + String.format("%.2f", y) + ")\n");
+                coordinates.append("Rueda " + (i + 1) + ": (" + String.format("%.2f", x) + ", "
+                        + String.format("%.2f", y) + ")\n");
             }
 
         }
