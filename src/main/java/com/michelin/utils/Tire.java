@@ -85,8 +85,13 @@ public class Tire {
 
         }
     }
-
-    @Override
+    public void drawInvalid(GraphicsContext gc) {
+        Color originalColor = color;
+        color = Color.RED;
+        draw(gc);
+        color = originalColor;
+    }
+        @Override
     public String toString() {
         return "Tire{" +
                 "model='" + model + '\'' +

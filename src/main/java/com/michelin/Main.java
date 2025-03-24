@@ -22,7 +22,6 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
@@ -37,8 +36,7 @@ public class Main extends Application {
 
     private AbstractOptimization optimizationMethod;
     private Label tireCountLabel;
-    private Label occupancyLabel = new Label("Ocupación: 0%");
-    private ListView<String> coordinatesListView = new ListView<>();
+    private final Label occupancyLabel = new Label("Ocupación: 0%");
     @Override
     public void start(Stage primaryStage) {
         try {
@@ -65,13 +63,6 @@ public class Main extends Application {
             controls.setMaxWidth(200);
             controls.setAlignment(Pos.TOP_RIGHT);
             controls.getChildren().add(occupancyLabel);
-            // Crear el contenedor para las coordenadas de las ruedas
-            VBox coordinatesBox = new VBox(5, new Label("Coordenadas de las ruedas:"), coordinatesListView);
-            coordinatesBox.setPadding(new Insets(10));
-            coordinatesBox.setStyle("-fx-background-color: rgba(255,255,255,0.8)");
-            coordinatesBox.setMaxWidth(200);
-            coordinatesBox.setAlignment(Pos.TOP_LEFT); // Alinearlo a la izquierda
-            controls.getChildren().add(coordinatesBox);
 
             // Create optimization type dropdown with static list of implementations
             ComboBox<Class<? extends AbstractOptimization>> optimizationDropdown = new ComboBox<>();
@@ -305,17 +296,7 @@ public class Main extends Application {
                                         y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
                                     validTires++;
                                 }
-                             // Actualiza la lista de coordenadas 
-                                StringBuilder coordinates = new StringBuilder();
-                                for (int i = 0; i < currentTires.size(); i++) {
-                                    Tire rueda = currentTires.get(i);
-                                    double xx = rueda.getPositionX();
-                                    double yy = rueda.getPositionY();
-                                    coordinates.append("Rueda " + (i + 1) + ": (" + String.format("%.2f", xx) + ", " + String.format("%.2f", yy) + ")\n");
-                                }
 
-                                // Establecer el texto de la lista de coordenadas
-                                coordinatesListView.getItems().setAll(coordinates.toString().split("\n"));
                                 tire.draw(gc);
                             }
 
@@ -342,7 +323,7 @@ public class Main extends Application {
                             double occupancyPercentage = (totalTireArea / containerArea) * 100;
 
                             // Actualizar el prcentage de ocupación
-                            occupancyLabel.setText(String.format("Ocupación: %.2f%% ", occupancyPercentage));
+                            occupancyLabel.setText(String.format("Ocupación: %.2f%%", occupancyPercentage));
 
                             // Check if optimization is complete
                             if (optimizationMethod.isFinished()) {
@@ -445,10 +426,7 @@ public class Main extends Application {
             double y = tire.getPositionY();
             double r = tire.getRadius();
 
-            if (x - r >= distBorder &&
-                    x + r <= width - distBorder &&
-                    y - r >= distBorder &&
-                    y + r <= height - distBorder) {
+            if (isValidTire(tire, tires, width, height, distBorder)) {
                 tire.draw(gc);
                 gc.setFill(Color.WHITE);
                 gc.setStroke(Color.BLACK);
@@ -457,8 +435,42 @@ public class Main extends Application {
                 double textWidth = gc.getFont().getSize() / 2 * String.valueOf(i + 1).length();
                 double textHeight = gc.getFont().getSize() / 2;
                 gc.fillText(String.valueOf(i + 1), x - textWidth / 2, y + textHeight / 2);
+            } else {
+                tire.drawInvalid(gc);
             }
         }
+    }
+
+    private static boolean isValidTire(Tire tire, List<Tire> tires, int width, int height, int distBorder) {
+        double x = tire.getPositionX();
+        double y = tire.getPositionY();
+        double r = tire.getRadius();
+
+        if (tires == null || tires.isEmpty()) {
+            return false;
+        }
+
+        for (Tire otherTire : tires) {
+            if (otherTire == tire) {
+                continue;
+            }
+
+            double otherX = otherTire.getPositionX();
+            double otherY = otherTire.getPositionY();
+            double otherR = otherTire.getRadius();
+
+            double distance = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
+            double minDistance = r + otherR;
+
+            if (distance < minDistance) {
+                return false;
+            }
+        }
+
+        return x - r >= distBorder &&
+                x + r <= width - distBorder &&
+                y - r >= distBorder &&
+                y + r <= height - distBorder;
     }
 
     public static void main(String[] args) {

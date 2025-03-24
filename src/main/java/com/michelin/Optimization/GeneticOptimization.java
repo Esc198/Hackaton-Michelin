@@ -1,13 +1,8 @@
 package com.michelin.Optimization;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 import com.michelin.utils.Tire;
 
@@ -18,63 +13,129 @@ public class GeneticOptimization implements AbstractOptimization {
     private final float distBorder;
     private final float distTire;
     
-    private List<Individual> population;
-    private Individual bestSolution;
+    private Solution currentSolution;
+    private Solution bestSolution;
     private boolean finished;
     
-    private static final int POPULATION_SIZE = 10000;
-    private static final int MAX_GENERATIONS = 1000000000;
-    private static final float MUTATION_RATE = 0.1f;
-    private static final int ELITE_SIZE = 5;
+    // Parámetros del recocido simulado
+    private static final double INITIAL_TEMPERATURE = 100.0;
+    private static final double COOLING_RATE = 0.995;
+    private static final int MAX_ITERATIONS = 1000000;
+    private double currentTemperature;
     
-    private int currentGeneration;
     private final Random random;
-    private final ExecutorService executor;
+    private int iteration;
 
-    public GeneticOptimization(float tireRadius, float containerWidth, float containerHeight, float distBorder, float distTire) {
+    public GeneticOptimization(float tireRadius, float containerWidth, float containerHeight, 
+            float distBorder, float distTire) {
         this.tireRadius = tireRadius;
         this.containerWidth = containerWidth;
         this.containerHeight = containerHeight;
         this.distBorder = distBorder;
         this.distTire = distTire;
         this.random = new Random();
-        this.executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        this.finished = false;
+        this.currentTemperature = INITIAL_TEMPERATURE;
+        this.iteration = 0;
     }
 
-    private class Individual implements Comparable<Individual> {
+    private class Solution {
         List<Tire> tires;
-        float fitness;
+        double fitness;
 
-        Individual() {
+        Solution() {
             this.tires = new ArrayList<>();
         }
 
-        Individual(List<Tire> tires) {
-            this.tires = new ArrayList<>();
-            for (Tire tire : tires) {
-                this.tires.add(new Tire(tire.getModel(), tire.getRadius(), tire.getPositionX(), tire.getPositionY()));
-            }
+        Solution(List<Tire> tires) {
+            this.tires = new ArrayList<>(tires);
             calculateFitness();
         }
 
-        void calculateFitness() {
-            float validTires = 0;
+        final void calculateFitness() {
+            int totalTires = tires.size();
+            int validTires = 0;
+
+            // Contar ruedas válidas
             for (Tire tire : tires) {
                 if (isValidPosition(tire, this)) {
                     validTires++;
                 }
             }
+            
+            // El fitness es el número de ruedas válidas
+            // Las soluciones con más ruedas válidas tendrán mejor fitness
             this.fitness = validTires;
         }
 
-        @Override
-        public int compareTo(Individual other) {
-            return Float.compare(other.fitness, this.fitness); // Mayor fitness primero
+        Solution createNeighbor() {
+            Solution neighbor = new Solution(this.tires);
+            
+            switch(random.nextInt(4)) {
+                case 0: // Mover una rueda
+                    if (!neighbor.tires.isEmpty()) {
+                        int index = random.nextInt(neighbor.tires.size());
+                        Tire tire = neighbor.tires.get(index);
+                        float newX = distBorder + tireRadius + 
+                            random.nextFloat() * (containerWidth - 2 * (distBorder + tireRadius));
+                        float newY = distBorder + tireRadius + 
+                            random.nextFloat() * (containerHeight - 2 * (distBorder + tireRadius));
+                        // No verificamos validez, simplemente movemos la rueda
+                        neighbor.tires.set(index, new Tire(tire.getModel(), tire.getRadius(), newX, newY));
+                    }
+                    break;
+                    
+                case 1: // Intercambiar dos ruedas
+                    if (neighbor.tires.size() >= 2) {
+                        int i1 = random.nextInt(neighbor.tires.size());
+                        int i2 = random.nextInt(neighbor.tires.size());
+                        Tire t1 = neighbor.tires.get(i1);
+                        Tire t2 = neighbor.tires.get(i2);
+                        float tempX = t1.getPositionX();
+                        float tempY = t1.getPositionY();
+                        neighbor.tires.set(i1, new Tire(t1.getModel(), t1.getRadius(), 
+                            t2.getPositionX(), t2.getPositionY()));
+                        neighbor.tires.set(i2, new Tire(t2.getModel(), t2.getRadius(), 
+                            tempX, tempY));
+                    }
+                    break;
+                    
+                case 2: // Añadir una rueda
+                    float x = distBorder + tireRadius + 
+                        random.nextFloat() * (containerWidth - 2 * (distBorder + tireRadius));
+                    float y = distBorder + tireRadius + 
+                        random.nextFloat() * (containerHeight - 2 * (distBorder + tireRadius));
+                    // Añadir la rueda sin verificar validez
+                    neighbor.tires.add(new Tire("Tire " + neighbor.tires.size(), tireRadius, x, y));
+                    break;
+
+                case 3: // Eliminar una rueda
+                    if (neighbor.tires.size() > 1) {
+                        // Intentar eliminar primero una rueda inválida si existe
+                        int indexToRemove = findInvalidTireIndex(neighbor);
+                        if (indexToRemove == -1) {
+                            // Si no hay ruedas inválidas, eliminar una al azar
+                            indexToRemove = random.nextInt(neighbor.tires.size());
+                        }
+                        neighbor.tires.remove(indexToRemove);
+                    }
+                    break;
+            }
+            
+            neighbor.calculateFitness();
+            return neighbor;
+        }
+
+        private int findInvalidTireIndex(Solution solution) {
+            for (int i = 0; i < solution.tires.size(); i++) {
+                if (!isValidPosition(solution.tires.get(i), solution)) {
+                    return i;
+                }
+            }
+            return -1;
         }
     }
 
-    private boolean isValidPosition(Tire tire, Individual individual) {
+    private boolean isValidPosition(Tire tire, Solution solution) {
         // Verificar límites del contenedor
         if (tire.getPositionX() - tireRadius < distBorder || 
             tire.getPositionX() + tireRadius > containerWidth - distBorder ||
@@ -83,8 +144,8 @@ public class GeneticOptimization implements AbstractOptimization {
             return false;
         }
 
-        // Verificar colisiones con otras ruedas en el mismo individuo
-        for (Tire other : individual.tires) {
+        // Verificar colisiones con otras ruedas
+        for (Tire other : solution.tires) {
             if (tire == other) continue;
             float dx = tire.getPositionX() - other.getPositionX();
             float dy = tire.getPositionY() - other.getPositionY();
@@ -96,174 +157,61 @@ public class GeneticOptimization implements AbstractOptimization {
         return true;
     }
 
+
+
     @Override
     public void setup() {
-        population = new ArrayList<>();
-        currentGeneration = 0;
-        
-        // Crear población inicial con individuos válidos
-        while (population.size() < POPULATION_SIZE) {
-            Individual individual = createValidIndividual();
-            if (individual != null) {
-                population.add(individual);
-                if (bestSolution == null || individual.fitness > bestSolution.fitness) {
-                    bestSolution = new Individual(individual.tires);
-                }
-            }
-        }
+        // Crear solución inicial con patrón hexagonal
+        currentSolution = createHexagonalSolution();
+        bestSolution = new Solution(currentSolution.tires);
+        currentTemperature = INITIAL_TEMPERATURE;
+        iteration = 0;
+        finished = false;
     }
 
-    private Individual createValidIndividual() {
-        Individual individual = new Individual();
-        int maxAttempts = 1000; // Límite de intentos para evitar bucles infinitos
-        int attempts = 0;
+    private Solution createHexagonalSolution() {
+        Solution solution = new Solution();
+        float rowHeight = (float)(Math.sqrt(3) * (tireRadius + distTire/2));
+        float colWidth = 2 * (tireRadius + distTire/2);
         
-        while (attempts < maxAttempts) {
-            // Intentar añadir una nueva rueda
-            float x = distBorder + tireRadius + random.nextFloat() * (containerWidth - 2 * (distBorder + tireRadius));
-            float y = distBorder + tireRadius + random.nextFloat() * (containerHeight - 2 * (distBorder + tireRadius));
+        for (float y = distBorder + tireRadius; y <= containerHeight - distBorder - tireRadius; y += rowHeight) {
+            boolean oddRow = (int)((y - distBorder - tireRadius) / rowHeight) % 2 == 1;
+            float startX = distBorder + tireRadius + (oddRow ? colWidth/2 : 0);
             
-            Tire newTire = new Tire("Tire " + individual.tires.size(), tireRadius, x, y);
-            
-            // Verificar si la posición es válida
-            if (isValidPosition(newTire, individual)) {
-                individual.tires.add(newTire);
-                attempts = 0; // Resetear intentos al añadir una rueda exitosamente
-            } else {
-                attempts++;
+            for (float x = startX; x <= containerWidth - distBorder - tireRadius; x += colWidth) {
+                Tire tire = new Tire("Tire " + solution.tires.size(), tireRadius, x, y);
+                if (isValidPosition(tire, solution)) {
+                    solution.tires.add(tire);
+                }
             }
-            
-            // Si hemos intentado muchas veces sin éxito, probablemente el espacio está lleno
-            if (attempts >= 100 && !individual.tires.isEmpty()) {
-                break;
-            }
-        }
-        
-        // Solo retornar el individuo si tiene al menos una rueda
-        if (!individual.tires.isEmpty()) {
-            individual.calculateFitness();
-            return individual;
-        }
-        return null;
+        }        
+        solution.calculateFitness();
+        return solution;
     }
 
     @Override
     public void run() {
-        if (currentGeneration >= MAX_GENERATIONS) {
+        if (iteration >= MAX_ITERATIONS || currentTemperature < 0.01) {
             finished = true;
             return;
         }
 
-        try {
-            // Evaluar población en paralelo
-            List<Future<Individual>> futures = new ArrayList<>();
-            for (Individual individual : population) {
-                futures.add(executor.submit(() -> {
-                    individual.calculateFitness();
-                    return individual;
-                }));
-            }
+        // Generar y evaluar solución vecina
+        Solution neighbor = currentSolution.createNeighbor();
+        double delta = neighbor.fitness - currentSolution.fitness;
 
-            // Esperar resultados y ordenar por fitness
-            population = futures.stream()
-                              .map(f -> {
-                                  try { return f.get(); }
-                                  catch (Exception e) { return null; }
-                              })
-                              .collect(Collectors.toList());
-            Collections.sort(population);
-
-            // Actualizar mejor solución
-            if (population.get(0).fitness > bestSolution.fitness) {
-                bestSolution = new Individual(population.get(0).tires);
-            }
-
-            // Crear nueva generación
-            List<Individual> newPopulation = new ArrayList<>();
-
-            // Mantener elite
-            for (int i = 0; i < ELITE_SIZE; i++) {
-                newPopulation.add(new Individual(population.get(i).tires));
-            }
-
-            // Crossover y mutación
-            while (newPopulation.size() < POPULATION_SIZE) {
-                Individual parent1 = selectParent();
-                Individual parent2 = selectParent();
-                Individual child = crossover(parent1, parent2);
-                if (random.nextFloat() < MUTATION_RATE) {
-                    mutate(child);
-                }
-                child.calculateFitness();
-                newPopulation.add(child);
-            }
-
-            population = newPopulation;
-            currentGeneration++;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private Individual selectParent() {
-        // Selección por torneo
-        int tournamentSize = 5;
-        Individual best = population.get(random.nextInt(population.size()));
-        for (int i = 1; i < tournamentSize; i++) {
-            Individual contestant = population.get(random.nextInt(population.size()));
-            if (contestant.fitness > best.fitness) {
-                best = contestant;
+        // Criterio de aceptación del recocido simulado
+        if (delta > 0 || random.nextDouble() < Math.exp(delta / currentTemperature)) {
+            currentSolution = neighbor;
+            if (currentSolution.fitness > bestSolution.fitness) {
+                bestSolution = new Solution(currentSolution.tires);
+                System.out.println("Best solution found: " + bestSolution.fitness);
             }
         }
-        return best;
-    }
 
-    private Individual crossover(Individual parent1, Individual parent2) {
-        Individual child = new Individual();
-        List<Tire> allTires = new ArrayList<>(parent1.tires);
-        allTires.addAll(parent2.tires);
-        Collections.shuffle(allTires, random);
-        
-        // Intentar añadir ruedas en orden aleatorio
-        for (Tire tire : allTires) {
-            Tire newTire = new Tire(tire.getModel(), tire.getRadius(), 
-                                  tire.getPositionX(), tire.getPositionY());
-            if (isValidPosition(newTire, child)) {
-                child.tires.add(newTire);
-            }
-        }
-        
-        return child;
-    }
-
-    private void mutate(Individual individual) {
-        // Lista temporal para almacenar las ruedas mutadas válidas
-        List<Tire> newTires = new ArrayList<>();
-        
-        for (Tire tire : individual.tires) {
-            if (random.nextFloat() < MUTATION_RATE) {
-                // Intentar nueva posición
-                float newX = distBorder + tireRadius + 
-                    random.nextFloat() * (containerWidth - 2 * (distBorder + tireRadius));
-                float newY = distBorder + tireRadius + 
-                    random.nextFloat() * (containerHeight - 2 * (distBorder + tireRadius));
-                
-                Tire newTire = new Tire(tire.getModel(), tire.getRadius(), newX, newY);
-                
-                // Solo mantener la nueva posición si es válida
-                if (isValidPosition(newTire, individual)) {
-                    newTires.add(newTire);
-                } else {
-                    newTires.add(tire); // Mantener la posición original si la nueva no es válida
-                }
-            } else {
-                newTires.add(tire);
-            }
-        }
-        
-        individual.tires.clear();
-        individual.tires.addAll(newTires);
+        // Enfriar temperatura
+        currentTemperature *= COOLING_RATE;
+        iteration++;
     }
 
     @Override
@@ -273,11 +221,7 @@ public class GeneticOptimization implements AbstractOptimization {
 
     @Override
     public boolean isFinished() {
+        finished = iteration >= MAX_ITERATIONS || currentTemperature < 0.01;
         return finished;
-    }
-
-    @Override
-    protected void finalize() {
-        executor.shutdown();
     }
 }
