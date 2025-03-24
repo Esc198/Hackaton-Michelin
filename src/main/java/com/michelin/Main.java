@@ -36,7 +36,7 @@ public class Main extends Application {
 
     private AbstractOptimization optimizationMethod;
     private Label tireCountLabel;
-
+    private final Label occupancyLabel = new Label("Ocupación: 0%");
     @Override
     public void start(Stage primaryStage) {
         try {
@@ -62,6 +62,7 @@ public class Main extends Application {
             controls.setStyle("-fx-background-color: rgba(255,255,255,0.8)");
             controls.setMaxWidth(200);
             controls.setAlignment(Pos.TOP_RIGHT);
+            controls.getChildren().add(occupancyLabel);
 
             // Create optimization type dropdown with static list of implementations
             ComboBox<Class<? extends AbstractOptimization>> optimizationDropdown = new ComboBox<>();
@@ -301,6 +302,28 @@ public class Main extends Application {
 
                             // Actualizar el contador
                             tireCountLabel.setText("Neumáticos válidos: " + validTires);
+                            
+                            
+                            // Calcular la ocupación del contenedor
+                            double totalTireArea = 0;
+                            for (Tire tire : currentTires) {
+                                double x = tire.getPositionX();
+                                double y = tire.getPositionY();
+                                double r = tire.getRadius();
+
+                                if (x - r >= distBorderSlider.getValue() &&
+                                    x + r <= widthSlider.getValue() - distBorderSlider.getValue() &&
+                                    y - r >= distBorderSlider.getValue() &&
+                                    y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
+                                    totalTireArea += Math.PI * r * r; // Área de un círculo
+                                }
+                            }
+
+                            double containerArea = widthSlider.getValue() * heightSlider.getValue();
+                            double occupancyPercentage = (totalTireArea / containerArea) * 100;
+
+                            // Actualizar el prcentage de ocupación
+                            occupancyLabel.setText(String.format("Ocupación: %.2f%%", occupancyPercentage));
 
                             // Check if optimization is complete
                             if (optimizationMethod.isFinished()) {
