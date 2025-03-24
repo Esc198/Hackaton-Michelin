@@ -39,8 +39,6 @@ public class Main extends Application {
     private Label tireCountLabel;
     private Label occupancyLabel = new Label("Ocupación: 0%");
     private ListView<String> coordinatesListView = new ListView<>();
-
-    // Nueva función para dibujar los ejes
     @Override
     public void start(Stage primaryStage) {
         try {
@@ -66,7 +64,7 @@ public class Main extends Application {
             controls.setStyle("-fx-background-color: rgba(255,255,255,0.8)");
             controls.setMaxWidth(200);
             controls.setAlignment(Pos.TOP_RIGHT);
-
+            controls.getChildren().add(occupancyLabel);
             // Crear el contenedor para las coordenadas de las ruedas
             VBox coordinatesBox = new VBox(5, new Label("Coordenadas de las ruedas:"), coordinatesListView);
             coordinatesBox.setPadding(new Insets(10));
@@ -307,14 +305,13 @@ public class Main extends Application {
                                         y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
                                     validTires++;
                                 }
-                                // Actualiza la lista de coordenadas
+                             // Actualiza la lista de coordenadas 
                                 StringBuilder coordinates = new StringBuilder();
                                 for (int i = 0; i < currentTires.size(); i++) {
                                     Tire rueda = currentTires.get(i);
                                     double xx = rueda.getPositionX();
                                     double yy = rueda.getPositionY();
-                                    coordinates.append("Rueda " + (i + 1) + ": (" + String.format("%.2f", xx) + ", "
-                                            + String.format("%.2f", yy) + ")\n");
+                                    coordinates.append("Rueda " + (i + 1) + ": (" + String.format("%.2f", xx) + ", " + String.format("%.2f", yy) + ")\n");
                                 }
 
                                 // Establecer el texto de la lista de coordenadas
@@ -324,6 +321,28 @@ public class Main extends Application {
 
                             // Actualizar el contador
                             tireCountLabel.setText("Neumáticos válidos: " + validTires);
+                            
+                            
+                            // Calcular la ocupación del contenedor
+                            double totalTireArea = 0;
+                            for (Tire tire : currentTires) {
+                                double x = tire.getPositionX();
+                                double y = tire.getPositionY();
+                                double r = tire.getRadius();
+
+                                if (x - r >= distBorderSlider.getValue() &&
+                                    x + r <= widthSlider.getValue() - distBorderSlider.getValue() &&
+                                    y - r >= distBorderSlider.getValue() &&
+                                    y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
+                                    totalTireArea += Math.PI * r * r; // Área de un círculo
+                                }
+                            }
+
+                            double containerArea = widthSlider.getValue() * heightSlider.getValue();
+                            double occupancyPercentage = (totalTireArea / containerArea) * 100;
+
+                            // Actualizar el prcentage de ocupación
+                            occupancyLabel.setText(String.format("Ocupación: %.2f%% ", occupancyPercentage));
 
                             // Check if optimization is complete
                             if (optimizationMethod.isFinished()) {
