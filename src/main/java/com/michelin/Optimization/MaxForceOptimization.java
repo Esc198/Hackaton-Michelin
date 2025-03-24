@@ -26,7 +26,7 @@ public class MaxForceOptimization implements AbstractOptimization {
 
     public MaxForceOptimization(float tireRadius, float containerWidth, float containerHeight, 
                               float distBorder, float distTire) {
-        this(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1000000, 0.0001f);
+        this(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1000000, 1f);
     }
 
     @Override
@@ -35,29 +35,15 @@ public class MaxForceOptimization implements AbstractOptimization {
         isRunning = true;
         
         simulationThread = new Thread(() -> {
-            try {
-                System.out.println("Iniciando simulación en hilo separado");
-                while (isRunning && !isFinished()) {
-                    state.incrementIteration();
-                    float newDelta = physicsEngine.simulatePhysics(state.getTires());
-                    state.setDelta(newDelta);
-                    
-                    // Verificar estancamiento
-                    state.checkForStagnation();
-                    
-                    // Añadir un pequeño sleep para no saturar el CPU
-                    if (state.getIteration() % 100 == 0) {
-                        Thread.sleep(1);
-                    }
-                }
-                System.out.println("Simulación finalizada:");
-                System.out.println("Iteraciones totales: " + state.getIteration());
-                System.out.println("Delta final: " + state.getDelta());
-                System.out.println("Ruedas válidas finales: " + state.countValidTires(state.getTires()));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                System.out.println("Simulación interrumpida");
+            System.out.println("Iniciando simulación en hilo separado");
+            while (isRunning && !isFinished()) {
+                state.incrementIteration();
+                physicsEngine.simulatePhysics(state.getTires());
+                
             }
+            System.out.println("Simulación finalizada:");
+            System.out.println("Iteraciones totales: " + state.getIteration());
+            System.out.println("Ruedas válidas finales: " + state.countValidTires(state.getTires()));
         });
         
         simulationThread.setName("SimulationThread");
@@ -79,8 +65,12 @@ public class MaxForceOptimization implements AbstractOptimization {
 
     @Override
     public boolean isFinished() {
-        return (state.getIteration() >= config.maxIteration) || 
-               (state.getIteration() > 10000 && state.getDelta() < config.minDelta);
+        if (state.getIteration() >= config.maxIteration ){
+            stop();
+            return true;
+        }
+
+        return false;
     }
 
     // Método para detener la simulación de forma segura
@@ -90,6 +80,7 @@ public class MaxForceOptimization implements AbstractOptimization {
             try {
                 simulationThread.join(1000); // Esperar hasta 1 segundo a que termine
             } catch (InterruptedException e) {
+                System.out.println("Error al esperar a que termine la simulación");
                 Thread.currentThread().interrupt();
             }
         }
@@ -121,16 +112,16 @@ public class MaxForceOptimization implements AbstractOptimization {
     private static class PhysicsEngine {
         private final Config config;
         private static final float WALL_REPULSION_FORCE = 200;
+        private static final float WHEEL_REPULSION_FORCE = 100;
         private static final float DAMPING_FACTOR = 0.95f;
         private static final float DT = 0.016f;
-        private static final float MIN_SPEED = 0.0001f;
+        private static final float MIN_SPEED = 0.01f;
 
         PhysicsEngine(Config config) {
             this.config = config;
         }
 
-        float simulatePhysics(List<PhysicTire> tires) {
-            float maxDelta = 0;
+        void simulatePhysics(List<PhysicTire> tires) {
             
             // Calcular todas las fuerzas primero
             for (int i = 0; i < tires.size(); i++) {
@@ -138,58 +129,20 @@ public class MaxForceOptimization implements AbstractOptimization {
                 Forces forces = calculateForces(tire, tires);
                 updateTirePhysics(tire, forces);
                 
-                // Actualizar delta considerando todas las colisiones
-                for (int j = i + 1; j < tires.size(); j++) {
-                    PhysicTire other = tires.get(j);
-                    float distance = calculateDistance(tire, other);
-                    float minDistance = config.tireRadius * 2 + config.distTire;
-                    
-                    if (distance < minDistance) {
-                        float overlap = minDistance - distance;
-                        maxDelta = Math.max(maxDelta, overlap);
-                    }
-                }
-                
-                // Verificar colisiones con los bordes
-                maxDelta = Math.max(maxDelta, calculateBoundaryDelta(tire));
             }
             
-            return maxDelta;
         }
 
-        private float calculateDistance(PhysicTire t1, PhysicTire t2) {
-            float dx = t1.getX() - t2.getX();
-            float dy = t1.getY() - t2.getY();
-            return (float) Math.sqrt(dx * dx + dy * dy);
-        }
 
-        private float calculateBoundaryDelta(PhysicTire tire) {
-            float maxBoundaryDelta = 0;
-            float x = tire.getX();
-            float y = tire.getY();
-            float r = config.tireRadius;
-            
-            // Verificar distancia a cada borde
-            if (x - r < config.distBorder) {
-                maxBoundaryDelta = Math.max(maxBoundaryDelta, config.distBorder - (x - r));
-            }
-            if (x + r > config.containerWidth - config.distBorder) {
-                maxBoundaryDelta = Math.max(maxBoundaryDelta, (x + r) - (config.containerWidth - config.distBorder));
-            }
-            if (y - r < config.distBorder) {
-                maxBoundaryDelta = Math.max(maxBoundaryDelta, config.distBorder - (y - r));
-            }
-            if (y + r > config.containerHeight - config.distBorder) {
-                maxBoundaryDelta = Math.max(maxBoundaryDelta, (y + r) - (config.containerHeight - config.distBorder));
-            }
-            
-            return maxBoundaryDelta;
-        }
 
         private Forces calculateForces(PhysicTire tire1, List<PhysicTire> tires) {
             Forces forces = new Forces();
             
-            // Amortiguación
+            // Amortiguación (Damping)
+            // Aplica una fuerza opuesta al movimiento para simular fricción/resistencia
+            // La fuerza es proporcional a la velocidad actual multiplicada por (1-DAMPING_FACTOR)
+            // - Si DAMPING_FACTOR es 0, la amortiguación es máxima (la rueda se detiene rápidamente)
+            // - Si DAMPING_FACTOR es 1, no hay amortiguación (la rueda mantiene su velocidad)
             forces.fx = -tire1.getCurrentSpeedX() * (1 - DAMPING_FACTOR);
             forces.fy = -tire1.getCurrentSpeedY() * (1 - DAMPING_FACTOR);
             
@@ -200,26 +153,16 @@ public class MaxForceOptimization implements AbstractOptimization {
                 float dx = tire1.getX() - tire2.getX();
                 float dy = tire1.getY() - tire2.getY();
                 float distance = (float)Math.sqrt(dx * dx + dy * dy);
-                float minDistance = config.tireRadius * 2 + config.distTire;
                 
-                if (distance < minDistance * 2) {  // Aumentar rango de interacción
-                    // Fuerza base inversamente proporcional a la distancia
-                    float forceMagnitude = WALL_REPULSION_FORCE;
-                    
-                    // Fuerza adicional si hay solapamiento
-                    if (distance < minDistance) {
-                        float overlap = minDistance - distance;
-                        forceMagnitude += overlap * WALL_REPULSION_FORCE * 4;  // Aumentar fuerza de repulsión
-                    }
-                    
-                    if (distance > 0.0001f) {  // Evitar división por cero
-                        float nx = dx / distance;
-                        float ny = dy / distance;
-                        forces.fx += nx * forceMagnitude;
-                        forces.fy += ny * forceMagnitude;
-                    }
-                }
+                // Fuerza base inversamente proporcional a la distancia
+                float forceMagnitude = WHEEL_REPULSION_FORCE / distance;
+                
+                float nx = dx / distance;
+                float ny = dy / distance;
+                forces.fx += nx * forceMagnitude;
+                forces.fy += ny * forceMagnitude;
             }
+            
             
             // Fuerzas de los bordes más fuertes
             addBoundaryForces(forces, tire1);
@@ -231,24 +174,20 @@ public class MaxForceOptimization implements AbstractOptimization {
             float x = tire.getX();
             float y = tire.getY();
             float r = config.tireRadius;
-            float borderForce = WALL_REPULSION_FORCE * 5;  // Aumentar significativamente la fuerza de los bordes
-            
+
+            float distance=0;
             // Aplicar fuerzas más fuertes cerca de los bordes
-            if (x - r < config.distBorder * 2) {
-                float dist = x - r - config.distBorder;
-                forces.fx += borderForce * (1.0f + Math.abs(dist / config.distBorder));
+            if ( (distance = config.distBorder - (x - r)) > 0) {
+                forces.fx += WALL_REPULSION_FORCE * (1.0f + Math.abs( 1/distance ));
             }
-            if (x + r > config.containerWidth - config.distBorder * 2) {
-                float dist = config.containerWidth - config.distBorder - (x + r);
-                forces.fx -= borderForce * (1.0f + Math.abs(dist / config.distBorder));
+            if ( (distance = config.containerWidth - config.distBorder - (x + r)) > 0) {
+                forces.fx -= WALL_REPULSION_FORCE * (1.0f + Math.abs( 1/distance ));
             }
-            if (y - r < config.distBorder * 2) {
-                float dist = y - r - config.distBorder;
-                forces.fy += borderForce * (1.0f + Math.abs(dist / config.distBorder));
+            if ( (distance = config.distBorder - (y - r)) > 0) {
+                forces.fy += WALL_REPULSION_FORCE * (1.0f + Math.abs( 1/distance ));
             }
-            if (y + r > config.containerHeight - config.distBorder * 2) {
-                float dist = config.containerHeight - config.distBorder - (y + r);
-                forces.fy -= borderForce * (1.0f + Math.abs(dist / config.distBorder));
+            if ( (distance = config.containerHeight - config.distBorder - (y + r)) > 0) {
+                forces.fy -= WALL_REPULSION_FORCE * (1.0f + Math.abs( 1/distance ));
             }
         }
 
@@ -312,7 +251,6 @@ public class MaxForceOptimization implements AbstractOptimization {
     private static class Forces {
         float fx = 0;
         float fy = 0;
-        float delta = 0;
     }
 
     // Estado de la simulación
@@ -320,32 +258,24 @@ public class MaxForceOptimization implements AbstractOptimization {
         private final Config config;
         private final List<PhysicTire> tires;
         private volatile int iteration;
-        private volatile float delta;
-        private float lastDelta;
-        private int stagnationCounter;
-        private static final int STAGNATION_CHECK_INTERVAL = 5000;
-        private static final int STAGNATION_THRESHOLD = 5;
-        private static final float DELTA_CHANGE_THRESHOLD = 0.01f;
-        private List<RemovalTest> activeTests;
         private List<PhysicTire> bestConfiguration;
         private int bestValidTireCount;
-        private float bestValidDelta;
         private boolean testsInProgress;
+        private final List<RemovalTest> activeTests;
+        
 
         SimulationState(Config config) {
             this.config = config;
             this.tires = new ArrayList<>();
-            this.activeTests = new ArrayList<>();
             this.bestConfiguration = new ArrayList<>();
             this.bestValidTireCount = 0;
-            this.bestValidDelta = Float.MAX_VALUE;
             this.testsInProgress = false;
-        }
+            this.activeTests = new ArrayList<>();
+        }   
 
         synchronized void initialize() {
             tires.clear();
             iteration = 0;
-            delta = 0;
             
             int tireCount = (int) ((config.containerWidth - config.distBorder * 2) * 
                                  (config.containerHeight - config.distBorder * 2) /
@@ -371,17 +301,8 @@ public class MaxForceOptimization implements AbstractOptimization {
         }
         
         int getIteration() { return iteration; }
-        float getDelta() { return delta; }
         
         synchronized void incrementIteration() { iteration++; }
-        synchronized void setDelta(float newDelta) { 
-            delta = newDelta;
-            // Mostrar progreso cada 10000 iteraciones en lugar de 100
-            if (iteration % 10000 == 0) {
-                System.out.printf("Iteración %,d: Delta=%.6f, Ruedas válidas=%d/%d%n", 
-                    iteration, delta, countValidTires(tires), tires.size());
-            }
-        }
 
         private synchronized void startRemovalTests() {
             if (testsInProgress) {
@@ -398,7 +319,6 @@ public class MaxForceOptimization implements AbstractOptimization {
             System.out.println("INICIANDO EVALUACIÓN DE ELIMINACIÓN DE RUEDAS");
             System.out.println("Estado actual:");
             System.out.printf("- Iteración: %,d%n", iteration);
-            System.out.printf("- Delta actual: %.6f%n", delta);
             System.out.printf("- Ruedas totales: %d%n", tires.size());
             System.out.printf("- Ruedas válidas: %d%n", currentValidTires);
             System.out.println("----------------------------------------\n");
@@ -528,7 +448,6 @@ public class MaxForceOptimization implements AbstractOptimization {
         private class RemovalTest extends Thread {
             private final List<PhysicTire> testTires;
             private final PhysicTire removedTire;
-            private float testDelta;
             private int validTireCount;
             private static final int TEST_ITERATIONS = 10000;
             private List<PhysicTire> finalConfiguration;
@@ -543,7 +462,6 @@ public class MaxForceOptimization implements AbstractOptimization {
             @Override
             public void run() {
                 PhysicsEngine testEngine = new PhysicsEngine(config);
-                float bestTestDelta = Float.MAX_VALUE;
                 List<PhysicTire> bestTestConfiguration = null;
                 
                 System.out.printf("\nIniciando prueba para %s:%n", removedTire.getModel());
@@ -551,26 +469,24 @@ public class MaxForceOptimization implements AbstractOptimization {
                 
                 // Ejecutar simulación de prueba
                 for (int i = 0; i < TEST_ITERATIONS; i++) {
-                    testDelta = testEngine.simulatePhysics(testTires);
+                    testEngine.simulatePhysics(testTires);
                     
                     // Guardar la mejor configuración encontrada durante la prueba
                     int currentValidCount = countValidTires(testTires);
                     if (currentValidCount > validTireCount || 
-                        (currentValidCount == validTireCount && testDelta < bestTestDelta)) {
+                        (currentValidCount == validTireCount )) {
                         validTireCount = currentValidCount;
-                        bestTestDelta = testDelta;
                         bestTestConfiguration = new ArrayList<>(testTires);
                         
                         if (i % 1000 == 0) {
-                            System.out.printf("  Iteración %d: %d ruedas válidas, delta=%.6f%n", 
-                                i, currentValidCount, testDelta);
+                            System.out.printf("  Iteración %d: %d ruedas válidas", 
+                                i, currentValidCount);
                         }
                     }
                 }
                 
                 // Usar la mejor configuración encontrada
                 if (bestTestConfiguration != null) {
-                    testDelta = bestTestDelta;
                     testTires.clear();
                     testTires.addAll(bestTestConfiguration);
                 }
@@ -579,13 +495,10 @@ public class MaxForceOptimization implements AbstractOptimization {
                 
                 synchronized (SimulationState.this) {
                     System.out.printf("\nResultados de prueba para %s:%n", removedTire.getModel());
-                    System.out.printf("- Delta final: %.6f%n", testDelta);
                     System.out.printf("- Ruedas válidas: %d%n", validTireCount);
                     
-                    if (validTireCount > bestValidTireCount ||
-                        (validTireCount == bestValidTireCount && testDelta < bestValidDelta)) {
+                    if (validTireCount > bestValidTireCount) {
                         bestValidTireCount = validTireCount;
-                        bestValidDelta = testDelta;
                         bestConfiguration = new ArrayList<>(finalConfiguration);
                         System.out.println("¡MEJOR CONFIGURACIÓN ENCONTRADA!");
                     }
@@ -614,8 +527,7 @@ public class MaxForceOptimization implements AbstractOptimization {
                     System.out.printf("- Ruedas válidas anteriores: %d%n", previousValid);
                     System.out.printf("- Ruedas válidas nuevas: %d%n", bestValidTireCount);
                     System.out.printf("- Mejora neta: %d ruedas%n", bestValidTireCount - previousValid);
-                    System.out.printf("- Delta anterior: %.6f%n", delta);
-                    System.out.printf("- Delta nueva: %.6f%n", bestValidDelta);
+
                     
                     tires.clear();
                     tires.addAll(bestConfiguration);
@@ -631,27 +543,9 @@ public class MaxForceOptimization implements AbstractOptimization {
                     }
                 }
                 System.out.println("----------------------------------------\n");
-                
-                stagnationCounter = 0;
-                lastDelta = delta;
+            
             }
         }
 
-        synchronized void checkForStagnation() {
-            if (!testsInProgress && iteration % STAGNATION_CHECK_INTERVAL == 0) {
-                // Verificar si el sistema está lo suficientemente estable (delta < 0.5)
-                System.out.printf("\nVerificando estabilidad (Iteración %,d):%n", iteration);
-                System.out.printf("- Delta actual: %.6f%n", delta);
-                
-                if (delta < 0.5f) {
-                    System.out.println("Sistema estable (delta < 0.5). Iniciando pruebas de eliminación.");
-                    startRemovalTests();
-                } else {
-                    System.out.println("Sistema aún inestable. Continuando optimización.");
-                }
-                
-                lastDelta = delta;
-            }
-        }
     }
 }
