@@ -40,6 +40,7 @@ public class Main extends Application {
     private Label occupancyLabel = new Label("Ocupación: 0%");
     private ListView<String> coordinatesListView = new ListView<>();
 
+    // Nueva función para dibujar los ejes
     @Override
     public void start(Stage primaryStage) {
         try {
