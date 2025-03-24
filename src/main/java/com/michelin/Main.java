@@ -38,7 +38,7 @@ public class Main extends Application {
     private AbstractOptimization optimizationMethod;
     private Label tireCountLabel;
     private Label occupancyLabel = new Label("Ocupación: 0%");
-    private ListView<String> coordinatesListView = new ListView<>();
+    private static ListView<String> coordinatesListView = new ListView<>();
     @Override
     public void start(Stage primaryStage) {
         try {
@@ -305,17 +305,8 @@ public class Main extends Application {
                                         y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
                                     validTires++;
                                 }
-                             // Actualiza la lista de coordenadas 
-                                StringBuilder coordinates = new StringBuilder();
-                                for (int i = 0; i < currentTires.size(); i++) {
-                                    Tire rueda = currentTires.get(i);
-                                    double xx = rueda.getPositionX();
-                                    double yy = rueda.getPositionY();
-                                    coordinates.append("Rueda " + (i + 1) + ": (" + String.format("%.2f", xx) + ", " + String.format("%.2f", yy) + ")\n");
-                                }
 
-                                // Establecer el texto de la lista de coordenadas
-                                coordinatesListView.getItems().setAll(coordinates.toString().split("\n"));
+
                                 tire.draw(gc);
                             }
 
@@ -438,6 +429,7 @@ public class Main extends Application {
                 .thenComparingDouble(Tire::getPositionX));
 
         // Asignar números a las ruedas en orden de preferencia
+        StringBuilder coordinates = new StringBuilder();
         for (int i = 0; i < tires.size(); i++) {
             Tire tire = tires.get(i);
             // Verificar la posición de la rueda
@@ -457,8 +449,12 @@ public class Main extends Application {
                 double textWidth = gc.getFont().getSize() / 2 * String.valueOf(i + 1).length();
                 double textHeight = gc.getFont().getSize() / 2;
                 gc.fillText(String.valueOf(i + 1), x - textWidth / 2, y + textHeight / 2);
+                coordinates.append("Rueda " + (i + 1) + ": (" + String.format("%.2f", x) + ", " + String.format("%.2f", y) + ")\n");
             }
+
         }
+        // Establecer el texto de la lista de coordenadas
+        coordinatesListView.getItems().setAll(coordinates.toString().split("\n"));
     }
 
     public static void main(String[] args) {
