@@ -34,7 +34,6 @@ import javafx.stage.Stage;
 
 public class Main extends Application {
 
-	//borrar
     private AbstractOptimization optimizationMethod;
     private Label tireCountLabel;
     private final Label occupancyLabel = new Label("Ocupación: 0%");
