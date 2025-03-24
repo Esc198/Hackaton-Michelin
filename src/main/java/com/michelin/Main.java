@@ -22,6 +22,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
@@ -36,7 +37,8 @@ public class Main extends Application {
 
     private AbstractOptimization optimizationMethod;
     private Label tireCountLabel;
-    private final Label occupancyLabel = new Label("Ocupación: 0%");
+    private Label occupancyLabel = new Label("Ocupación: 0%");
+    private ListView<String> coordinatesListView = new ListView<>();
     @Override
     public void start(Stage primaryStage) {
         try {
@@ -63,6 +65,13 @@ public class Main extends Application {
             controls.setMaxWidth(200);
             controls.setAlignment(Pos.TOP_RIGHT);
             controls.getChildren().add(occupancyLabel);
+            // Crear el contenedor para las coordenadas de las ruedas
+            VBox coordinatesBox = new VBox(5, new Label("Coordenadas de las ruedas:"), coordinatesListView);
+            coordinatesBox.setPadding(new Insets(10));
+            coordinatesBox.setStyle("-fx-background-color: rgba(255,255,255,0.8)");
+            coordinatesBox.setMaxWidth(200);
+            coordinatesBox.setAlignment(Pos.TOP_LEFT); // Alinearlo a la izquierda
+            controls.getChildren().add(coordinatesBox);
 
             // Create optimization type dropdown with static list of implementations
             ComboBox<Class<? extends AbstractOptimization>> optimizationDropdown = new ComboBox<>();
@@ -296,7 +305,17 @@ public class Main extends Application {
                                         y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
                                     validTires++;
                                 }
+                             // Actualiza la lista de coordenadas 
+                                StringBuilder coordinates = new StringBuilder();
+                                for (int i = 0; i < currentTires.size(); i++) {
+                                    Tire rueda = currentTires.get(i);
+                                    double xx = rueda.getPositionX();
+                                    double yy = rueda.getPositionY();
+                                    coordinates.append("Rueda " + (i + 1) + ": (" + String.format("%.2f", xx) + ", " + String.format("%.2f", yy) + ")\n");
+                                }
 
+                                // Establecer el texto de la lista de coordenadas
+                                coordinatesListView.getItems().setAll(coordinates.toString().split("\n"));
                                 tire.draw(gc);
                             }
 
@@ -323,7 +342,7 @@ public class Main extends Application {
                             double occupancyPercentage = (totalTireArea / containerArea) * 100;
 
                             // Actualizar el prcentage de ocupación
-                            occupancyLabel.setText(String.format("Ocupación: %.2f%%", occupancyPercentage));
+                            occupancyLabel.setText(String.format("Ocupación: %.2f%% ", occupancyPercentage));
 
                             // Check if optimization is complete
                             if (optimizationMethod.isFinished()) {
