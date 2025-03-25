@@ -354,7 +354,7 @@ public class Main extends Application {
 
                             for (Tire tire : currentTires) {
 
-                                if (isValidTire(tire, widthSlider.getValue(), heightSlider.getValue(), distBorderSlider.getValue(), currentTires)) {
+                                if (isValidTire(tire, widthSlider.getValue(), heightSlider.getValue(), distBorderSlider.getValue(), currentTires, distTireSlider.getValue())) {
                                     validTires++;
                                 }
 
@@ -608,7 +608,7 @@ public class Main extends Application {
     }
 
 
-    public static boolean isValidTire(Tire tire, double width, double height, double distBorder, List<Tire> tires) {
+    public static boolean isValidTire(Tire tire, double width, double height, double distBorder, List<Tire> tires, double distTire) {
         double x = tire.getPositionX();
         double y = tire.getPositionY();
         double r = tire.getRadius();
@@ -618,9 +618,8 @@ public class Main extends Application {
             }
             double otherX = otherTire.getPositionX();
             double otherY = otherTire.getPositionY();
-            double otherR = otherTire.getRadius();
             double distance = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
-            if (distance < r + otherR) {
+            if (distance + 0.00001f < r + r + distTire) {
                 return false;
             }
         }
