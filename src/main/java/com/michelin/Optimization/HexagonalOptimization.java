@@ -36,7 +36,7 @@ public class HexagonalOptimization implements AbstractOptimization {
 
         // Calculate spacing between tire centers
         float horizontalSpacing = 2 * radius + distTire;
-        float verticalSpacing = (float)(Math.sqrt(3) * (radius + distTire/2));
+        double verticalSpacing = (double)(Math.sqrt(3) * (radius + distTire/2));
 
         // Calculate number of tires that can fit
         int tiresPerRow = (int)(effectiveWidth / horizontalSpacing);
@@ -54,7 +54,7 @@ public class HexagonalOptimization implements AbstractOptimization {
             
             for (int col = 0; col < tiresPerRow; col++) {
                 float x = startX + col * horizontalSpacing + xOffset;
-                float y = startY + row * verticalSpacing;
+                double y = startY + row * verticalSpacing;
                 
                 // Only add tire if it fits within the effective area
                 if (x + radius <= width - (distBorder ) && 
