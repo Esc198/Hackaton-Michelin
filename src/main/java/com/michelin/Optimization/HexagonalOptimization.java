@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.michelin.utils.Tire;
-
+//Mario maricon
 public class HexagonalOptimization implements AbstractOptimization {
     private final float radius;
     private final float width;
