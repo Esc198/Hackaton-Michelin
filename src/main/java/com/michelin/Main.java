@@ -8,6 +8,7 @@ import java.util.List;
 import com.michelin.Optimization.AbstractOptimization;
 import com.michelin.Optimization.HexagonalOptimization;
 import com.michelin.Optimization.MaxForceOptimization;
+import com.michelin.Optimization.SinglePhisicOptimization;
 import com.michelin.Optimization.SquareGridOptimization;
 import com.michelin.utils.Tire;
 
@@ -94,7 +95,9 @@ public class Main extends Application {
             List<Class<? extends AbstractOptimization>> optimizationClasses = Arrays.asList(
                     HexagonalOptimization.class,
                     SquareGridOptimization.class,
-                    MaxForceOptimization.class);
+                    MaxForceOptimization.class,
+                    SinglePhisicOptimization.class
+                    );
 
             optimizationDropdown.getItems().addAll(optimizationClasses);
             if (!optimizationClasses.isEmpty()) {
@@ -350,15 +353,8 @@ public class Main extends Application {
                             int validTires = 0;
 
                             for (Tire tire : currentTires) {
-                                // Verificar si la rueda está completamente dentro del contenedor
-                                double x = tire.getPositionX();
-                                double y = tire.getPositionY();
-                                double r = tire.getRadius();
 
-                                if (x - r >= distBorderSlider.getValue() &&
-                                        x + r <= widthSlider.getValue() - distBorderSlider.getValue() &&
-                                        y - r >= distBorderSlider.getValue() &&
-                                        y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
+                                if (isValidTire(tire, widthSlider.getValue(), heightSlider.getValue(), distBorderSlider.getValue(), currentTires)) {
                                     validTires++;
                                 }
 
@@ -407,7 +403,9 @@ public class Main extends Application {
 
                 } catch (IllegalAccessException | IllegalArgumentException | InstantiationException
                         | NoSuchMethodException | SecurityException | InvocationTargetException ex) {
-                    optimizationMethod.stop();
+                    if (optimizationMethod != null) {
+                        optimizationMethod.stop();
+                    }
                     ex.printStackTrace();
                 }
 
@@ -607,5 +605,25 @@ public class Main extends Application {
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+
+    public static boolean isValidTire(Tire tire, double width, double height, double distBorder, List<Tire> tires) {
+        double x = tire.getPositionX();
+        double y = tire.getPositionY();
+        double r = tire.getRadius();
+        for (Tire otherTire : tires) {
+            if (otherTire == tire) {
+                continue;
+            }
+            double otherX = otherTire.getPositionX();
+            double otherY = otherTire.getPositionY();
+            double otherR = otherTire.getRadius();
+            double distance = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
+            if (distance < r + otherR) {
+                return false;
+            }
+        }
+        return x - r >= distBorder && x + r <= width - distBorder && y - r >= distBorder && y + r <= height - distBorder;
     }
 }
