@@ -39,7 +39,7 @@ public class MaxForceOptimization implements AbstractOptimization {
 
     public MaxForceOptimization(float tireRadius, float containerWidth, float containerHeight,
             float distBorder, float distTire) {
-        this(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000);
+        this(tireRadius, containerWidth, containerHeight, distBorder, distTire, 10_000_000);
     }
 
     @Override
@@ -71,7 +71,7 @@ public class MaxForceOptimization implements AbstractOptimization {
             float randomX = (float) (Math.random() * (config.containerWidth - 2 * config.distBorder) + config.distBorder);
             float randomY = (float) (Math.random() * (config.containerHeight - 2 * config.distBorder) + config.distBorder);
             initialTires.add(new PhysicTire(randomX, randomY, 0, 0, "" + i, config.tireRadius, i, config.tireRadius));
-            System.out.println("Simulación " + simIndex + " iniciada con " + i + " ruedas");
+            System.out.println("Simulación " + simIndex + " iniciada con " + initialTires.size() + " ruedas");
             executor.submit(() -> {
                 try {
                     PhysicsEngine physicsEngine = new PhysicsEngine(config, initialTires);
@@ -227,9 +227,9 @@ public class MaxForceOptimization implements AbstractOptimization {
         final float distTire;
         final float maxIteration;
 
-        final float REPULSION_FORCE = 10f;
+        final float REPULSION_FORCE = 1000f;
         final float DAMPING = 0.98f;
-        final float DT = 0.008f;
+        final float DT = 0.016f;
         final float MIN_SPEED = 0.00001f;
 
         SimulationConfig(float tireRadius, float containerWidth, float containerHeight,
@@ -256,7 +256,7 @@ public class MaxForceOptimization implements AbstractOptimization {
         PhysicsEngine(SimulationConfig config, List<PhysicTire> tires) {
             this.config = config;
             this.iteration = 0;
-            this.tires = tires;
+            this.tires = new ArrayList<>(tires);
         }
 
         void simulatePhysics() {
