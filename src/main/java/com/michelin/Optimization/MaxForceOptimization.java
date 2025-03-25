@@ -1,388 +1,434 @@
 package com.michelin.Optimization;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.michelin.utils.PhysicTire;
 import com.michelin.utils.Tire;
 
 public class MaxForceOptimization implements AbstractOptimization {
-    private final Config config;
+    private final SimulationConfig config;
     private final PhysicsEngine physicsEngine;
     private final SimulationState state;
-    private Thread simulationThread;
-    private volatile boolean isRunning;
+    private final AtomicBoolean isRunning;
+    private final ExecutorService executor;
+    private final List<Integer> validTireCounts;
+    private List<PhysicTire> bestConfiguration = new ArrayList<>();
+    private final List<Thread> activeThreads;
+    private volatile boolean shutdownRequested;
 
     public MaxForceOptimization(float tireRadius, float containerWidth, float containerHeight, 
-                              float distBorder, float distTire, float maxIteration, float minDelta) {
-        this.config = new Config(tireRadius, containerWidth, containerHeight, 
-                               distBorder, distTire, maxIteration, minDelta);
+                              float distBorder, float distTire, float maxIteration) {
+        this.config = new SimulationConfig(tireRadius, containerWidth, containerHeight, 
+                               distBorder, distTire, maxIteration);
         this.physicsEngine = new PhysicsEngine(config);
         this.state = new SimulationState(config);
+        this.isRunning = new AtomicBoolean(false);
+        this.executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        this.validTireCounts = new ArrayList<>();
+        this.activeThreads = new ArrayList<>();
+        this.shutdownRequested = false;
+        
+        // Agregar shutdown hook para limpieza en caso de interrupción
+        Runtime.getRuntime().addShutdownHook(new Thread(this::cleanupResources));
     }
 
     public MaxForceOptimization(float tireRadius, float containerWidth, float containerHeight, 
                               float distBorder, float distTire) {
-        this(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1000000, 1f);
+        this(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1000000);
     }
 
     @Override
     public void setup() {
         state.initialize();
-        isRunning = true;
+        isRunning.set(true);
+        shutdownRequested = false;
         
-        simulationThread = new Thread(() -> {
-            System.out.println("Iniciando simulación en hilo separado");
-            while (isRunning && !isFinished()) {
-                state.incrementIteration();
-                physicsEngine.simulatePhysics(state.getTires());
+        // Inicializar con optimizaciones básicas
+        int bestInitialCount = runInitialOptimizations();
+        
+        // Preparar lista de conteos
+        int maxWheelCount = config.getMaxWheelCount();
+        validTireCounts.clear();
+        for (int i = 0; i < maxWheelCount; i++) {
+            validTireCounts.add(i == 0 ? bestInitialCount : 0);
+        }
+
+        // Iniciar simulaciones
+        synchronized(activeThreads) {
+            activeThreads.clear();
+            for (int i = 0; i < maxWheelCount; i++) {
+                final int simIndex = i;
+                final SimulationState simState = state.clone(); // Cada simulación tiene su propio estado
                 
+                Thread simulationThread = new Thread(() -> {
+                    try {
+                        runSimulation(simIndex, simState);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        System.out.println("Simulación " + simIndex + " interrumpida");
+                    }
+                });
+                simulationThread.setName("Simulation-" + i);
+                activeThreads.add(simulationThread);
+                simulationThread.start();
             }
-            System.out.println("Simulación finalizada:");
-            System.out.println("Iteraciones totales: " + state.getIteration());
-            System.out.println("Ruedas válidas finales: " + state.countValidTires(state.getTires()));
-        });
+        }
+    }
+
+    private int runInitialOptimizations() {
+        var hexOpt = new HexagonalOptimization(config.tireRadius, config.containerWidth, 
+                                             config.containerHeight, config.distBorder, config.distTire);
+        var squareOpt = new SquareGridOptimization(config.tireRadius, config.containerWidth, 
+                                                  config.containerHeight, config.distBorder, config.distTire);
         
-        simulationThread.setName("SimulationThread");
-        simulationThread.start();
+        hexOpt.setup();
+        squareOpt.setup();
+        hexOpt.run();
+        squareOpt.run();
+        
+        return Math.max(hexOpt.getResult().size(), squareOpt.getResult().size());
+    }
+
+    private void runSimulation(int simIndex, SimulationState simState) throws InterruptedException {
+        while (isRunning.get() && !isFinished() && !Thread.currentThread().isInterrupted()) {
+            if (shutdownRequested) {
+                break;
+            }
+            
+            simState.incrementIteration();
+            physicsEngine.simulatePhysics(simState.getTires());
+            int currentValidTires = simState.countValidTires();
+            
+            synchronized(validTireCounts) {
+                validTireCounts.set(simIndex, currentValidTires);
+                if (currentValidTires > getBestValidTireCount()) {
+                    bestConfiguration = new ArrayList<>(simState.getTires());
+                    System.out.printf("Nueva mejor configuración encontrada: %d ruedas válidas%n", 
+                                    currentValidTires);
+                }
+                if (simState.getIteration() % 1000 == 0) {
+                    System.out.printf("Simulación %d: %d ruedas válidas (Mejor hasta ahora: %d)%n", 
+                                    simIndex, currentValidTires, getBestValidTireCount());
+                }
+            }
+            
+            Thread.sleep(1);
+        }
+    }
+
+    private int getBestValidTireCount() {
+        int maxCount = 0;
+        for (int count : validTireCounts) {
+            if (count > maxCount) {
+                maxCount = count;
+            }
+        }
+        return maxCount;
     }
 
     @Override
     public void run() {
-        // Este método ya no hace nada porque la simulación corre en otro hilo
+        // La simulación corre en hilos separados
     }
 
     @Override
     public List<Tire> getResult() {
-        // Crear una copia segura del estado actual
-        synchronized(state) {
-            return new ArrayList<>(state.getTires());
+        synchronized(validTireCounts) {
+            // Si no hay mejor configuración guardada, devolver la actual
+            if (bestConfiguration.isEmpty()) {
+                return new ArrayList<>(state.getTires());
+            }
+            // Devolver la mejor configuración encontrada
+            return new ArrayList<>(bestConfiguration);
         }
     }
 
     @Override
     public boolean isFinished() {
-        if (state.getIteration() >= config.maxIteration ){
-            stop();
-            return true;
-        }
-
-        return false;
-    }
-
-    // Método para detener la simulación de forma segura
-    public void stop() {
-        isRunning = false;
-        if (simulationThread != null) {
-            try {
-                simulationThread.join(1000); // Esperar hasta 1 segundo a que termine
-            } catch (InterruptedException e) {
-                System.out.println("Error al esperar a que termine la simulación");
-                Thread.currentThread().interrupt();
+        if (state.getIteration() >= config.maxIteration) {
+            System.out.println("Terminado");
+                return true;
             }
+            return false;
+    }
+
+    public void stop() {
+        try {
+            shutdownRequested = true;
+            isRunning.set(false);
+            
+            // Interrumpir todos los hilos activos
+            synchronized(activeThreads) {
+                for (Thread thread : activeThreads) {
+                    if (thread != null && thread.isAlive()) {
+                        thread.interrupt();
+                    }
+                }
+            }
+            
+            // Esperar a que todos los hilos terminen (con timeout)
+            long timeout = System.currentTimeMillis() + 5000; // 5 segundos de timeout
+            synchronized(activeThreads) {
+                for (Thread thread : activeThreads) {
+                    if (thread != null && thread.isAlive()) {
+                        long remainingTime = timeout - System.currentTimeMillis();
+                        if (remainingTime > 0) {
+                            thread.join(remainingTime);
+                        }
+                    }
+                }
+            }
+            
+            // Apagar el executor service
+            executor.shutdownNow();
+            if (!executor.awaitTermination(3, TimeUnit.SECONDS)) {
+                System.err.println("El executor no se cerró correctamente");
+            }
+            
+            // Mostrar resultado final
+            int finalBestCount = getBestValidTireCount();
+            System.out.println("\n=== Resultado Final ===");
+            System.out.println("Mejor cantidad de ruedas válidas: " + finalBestCount);
+            System.out.println("Iteraciones totales: " + state.getIteration());
+            System.out.println("====================");
+            
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            System.err.println("Interrupción durante el cierre de la simulación");
+        } finally {
+            cleanupResources();
         }
     }
 
-    // Clase de configuración
-    private static class Config {
+    private void cleanupResources() {
+        try {
+            shutdownRequested = true;
+            isRunning.set(false);
+            
+            // Asegurar que el executor se cierre
+            if (executor != null && !executor.isShutdown()) {
+                executor.shutdownNow();
+            }
+            
+            // Interrumpir hilos activos
+            synchronized(activeThreads) {
+                for (Thread thread : activeThreads) {
+                    if (thread != null && thread.isAlive()) {
+                        thread.interrupt();
+                    }
+                }
+                activeThreads.clear();
+            }
+            
+            // Limpiar otras estructuras de datos
+            validTireCounts.clear();
+            bestConfiguration.clear();
+            
+        } catch (Exception e) {
+            System.err.println("Error durante la limpieza de recursos: " + e.getMessage());
+        }
+    }
+
+    private static class SimulationConfig {
         final float tireRadius;
         final float containerWidth;
         final float containerHeight;
         final float distBorder;
         final float distTire;
         final float maxIteration;
-        final float minDelta;
 
-        Config(float tireRadius, float containerWidth, float containerHeight,
-               float distBorder, float distTire, float maxIteration, float minDelta) {
+        SimulationConfig(float tireRadius, float containerWidth, float containerHeight,
+               float distBorder, float distTire, float maxIteration) {
             this.tireRadius = tireRadius;
             this.containerWidth = containerWidth;
             this.containerHeight = containerHeight;
             this.distBorder = distBorder;
             this.distTire = distTire;
             this.maxIteration = maxIteration;
-            this.minDelta = minDelta;
+        }
+
+        int getMaxWheelCount() {
+            return (int) ((containerWidth - 2 * distBorder) * (containerHeight - 2 * distBorder) /
+                   (Math.PI * Math.pow(tireRadius + distTire, 2)));
         }
     }
 
-    // Motor de física
     private static class PhysicsEngine {
-        private final Config config;
-        private static final float WALL_REPULSION_FORCE = 200;
-        private static final float WHEEL_REPULSION_FORCE = 100;
-        private static final float DAMPING_FACTOR = 0.95f;
-        private static final float DT = 0.016f;
-        private static final float MIN_SPEED = 0.01f;
+        private static final float REPULSION_FORCE = 10f;
+        private static final float DAMPING = 0.98f;
+        private static final float DT = 0.008f;
+        private static final float MIN_SPEED = 0.00001f;
+        private final SimulationConfig config;
 
-        PhysicsEngine(Config config) {
+        PhysicsEngine(SimulationConfig config) {
             this.config = config;
         }
 
         void simulatePhysics(List<PhysicTire> tires) {
-            
-            // Calcular todas las fuerzas primero
-            for (int i = 0; i < tires.size(); i++) {
-                PhysicTire tire = tires.get(i);
-                Forces forces = calculateForces(tire, tires);
-                updateTirePhysics(tire, forces);
-                
-            }
-            
+            tires.forEach(tire -> {
+                Vector2D force = calculateForces(tire, tires);
+                updateTirePhysics(tire, force);
+            });
         }
 
-
-
-        private Forces calculateForces(PhysicTire tire1, List<PhysicTire> tires) {
-            Forces forces = new Forces();
-            
-            // Amortiguación (Damping)
-            // Aplica una fuerza opuesta al movimiento para simular fricción/resistencia
-            // La fuerza es proporcional a la velocidad actual multiplicada por (1-DAMPING_FACTOR)
-            // - Si DAMPING_FACTOR es 0, la amortiguación es máxima (la rueda se detiene rápidamente)
-            // - Si DAMPING_FACTOR es 1, no hay amortiguación (la rueda mantiene su velocidad)
-            forces.fx = -tire1.getCurrentSpeedX() * (1 - DAMPING_FACTOR);
-            forces.fy = -tire1.getCurrentSpeedY() * (1 - DAMPING_FACTOR);
+        private Vector2D calculateForces(PhysicTire tire, List<PhysicTire> others) {
+            Vector2D force = new Vector2D();
             
             // Fuerzas entre ruedas
-            for (PhysicTire tire2 : tires) {
-                if (tire1 == tire2) continue;
-                
-                float dx = tire1.getX() - tire2.getX();
-                float dy = tire1.getY() - tire2.getY();
-                float distance = (float)Math.sqrt(dx * dx + dy * dy);
-                
-                // Fuerza base inversamente proporcional a la distancia
-                float forceMagnitude = WHEEL_REPULSION_FORCE / distance;
-                
-                float nx = dx / distance;
-                float ny = dy / distance;
-                forces.fx += nx * forceMagnitude;
-                forces.fy += ny * forceMagnitude;
-            }
+            others.stream()
+                 .filter(other -> other != tire)
+                 .forEach(other -> addTireRepulsion(tire, other, force));
+
+            // Fuerzas de bordes
+            addBorderForces(tire, force);
             
-            
-            // Fuerzas de los bordes más fuertes
-            addBoundaryForces(forces, tire1);
-            
-            return forces;
+            return force;
         }
 
-        private void addBoundaryForces(Forces forces, PhysicTire tire) {
-            float x = tire.getX();
-            float y = tire.getY();
-            float r = config.tireRadius;
+        private void addTireRepulsion(PhysicTire tire1, PhysicTire tire2, Vector2D force) {
+            float dx = tire1.getX() - tire2.getX();
+            float dy = tire1.getY() - tire2.getY();
+            float dist = (float) Math.sqrt(dx * dx + dy * dy);
+            float minDist = 2 * config.tireRadius + config.distTire;
 
-            float distance=0;
-            // Aplicar fuerzas más fuertes cerca de los bordes
-            if ( (distance = config.distBorder - (x - r)) > 0) {
-                forces.fx += WALL_REPULSION_FORCE * (1.0f + Math.abs( 1/distance ));
-            }
-            if ( (distance = config.containerWidth - config.distBorder - (x + r)) > 0) {
-                forces.fx -= WALL_REPULSION_FORCE * (1.0f + Math.abs( 1/distance ));
-            }
-            if ( (distance = config.distBorder - (y - r)) > 0) {
-                forces.fy += WALL_REPULSION_FORCE * (1.0f + Math.abs( 1/distance ));
-            }
-            if ( (distance = config.containerHeight - config.distBorder - (y + r)) > 0) {
-                forces.fy -= WALL_REPULSION_FORCE * (1.0f + Math.abs( 1/distance ));
+            if (dist < minDist && dist > 0.0001f) {
+                float overlap = minDist - dist;
+                float magnitude = REPULSION_FORCE * (overlap / minDist);
+                force.x += (dx / dist) * magnitude;
+                force.y += (dy / dist) * magnitude;
             }
         }
 
-        private void updateTirePhysics(PhysicTire tire, Forces forces) {
-            // Limitar fuerzas antes de actualizar
-            limitForces(forces, tire.getMaxForce());
-            
-            // Actualizar aceleración
-            tire.setCurrentAccelerationX(forces.fx / tire.getMaxForce() * tire.getMaxAcceleration());
-            tire.setCurrentAccelerationY(forces.fy / tire.getMaxForce() * tire.getMaxAcceleration());
-            
-            // Actualizar velocidad con más amortiguación
-            float newSpeedX = tire.getCurrentSpeedX() * DAMPING_FACTOR + tire.getCurrentAccelerationX() * DT;
-            float newSpeedY = tire.getCurrentSpeedY() * DAMPING_FACTOR + tire.getCurrentAccelerationY() * DT;
-            
-            // Detener si la velocidad es muy baja
-            if (Math.abs(newSpeedX) < MIN_SPEED && Math.abs(newSpeedY) < MIN_SPEED) {
-                newSpeedX = newSpeedY = 0;
+        private void addBorderForces(PhysicTire tire, Vector2D force) {
+            float[] distances = {
+                tire.getX() - config.distBorder - config.tireRadius,                    // left
+                config.containerWidth - tire.getX() - config.distBorder - config.tireRadius,  // right
+                tire.getY() - config.distBorder - config.tireRadius,                    // top
+                config.containerHeight - tire.getY() - config.distBorder - config.tireRadius  // bottom
+            };
+
+            for (int i = 0; i < distances.length; i++) {
+                if (distances[i] < config.distBorder) {
+                    float borderForce = REPULSION_FORCE / Math.max(distances[i], 0.0001f);
+                    if (i < 2) force.x += i == 0 ? borderForce : -borderForce;
+                    else force.y += i == 2 ? borderForce : -borderForce;
+                }
             }
-            
-            // Limitar velocidad
-            limitSpeed(tire, newSpeedX, newSpeedY);
+        }
+
+        private void updateTirePhysics(PhysicTire tire, Vector2D force) {
+            // Actualizar velocidad
+            tire.setCurrentSpeedX(tire.getCurrentSpeedX() * DAMPING + force.x * DT);
+            tire.setCurrentSpeedY(tire.getCurrentSpeedY() * DAMPING + force.y * DT);
+
+            // Aplicar velocidad mínima
+            if (Math.abs(tire.getCurrentSpeedX()) < MIN_SPEED) tire.setCurrentSpeedX(0);
+            if (Math.abs(tire.getCurrentSpeedY()) < MIN_SPEED) tire.setCurrentSpeedY(0);
             
             // Actualizar posición
             float newX = tire.getX() + tire.getCurrentSpeedX() * DT;
             float newY = tire.getY() + tire.getCurrentSpeedY() * DT;
             
-            // Asegurar que las ruedas no salgan del contenedor
-            newX = Math.max(config.distBorder + config.tireRadius, 
-                          Math.min(config.containerWidth - config.distBorder - config.tireRadius, newX));
-            newY = Math.max(config.distBorder + config.tireRadius, 
-                          Math.min(config.containerHeight - config.distBorder - config.tireRadius, newY));
+            // Mantener dentro de límites
+            newX = clamp(newX, config.distBorder + config.tireRadius, 
+                        config.containerWidth - config.distBorder - config.tireRadius);
+            newY = clamp(newY, config.distBorder + config.tireRadius, 
+                        config.containerHeight - config.distBorder - config.tireRadius);
             
             tire.setX(newX);
             tire.setY(newY);
         }
 
-        private void limitSpeed(PhysicTire tire, float speedX, float speedY) {
-            float speedMagnitude = (float)Math.sqrt(speedX * speedX + speedY * speedY);
-            if (speedMagnitude > tire.getMaxSpeed()) {
-                float scale = tire.getMaxSpeed() / speedMagnitude;
-                tire.setCurrentSpeedX(speedX * scale);
-                tire.setCurrentSpeedY(speedY * scale);
-            } else {
-                tire.setCurrentSpeedX(speedX);
-                tire.setCurrentSpeedY(speedY);
-            }
-        }
-
-        private void limitForces(Forces forces, float maxForce) {
-            float magnitude = (float)Math.sqrt(forces.fx * forces.fx + forces.fy * forces.fy);
-            if (magnitude > maxForce) {
-                float scale = maxForce / magnitude;
-                forces.fx *= scale;
-                forces.fy *= scale;
-            }
+        private float clamp(float value, float min, float max) {
+            return Math.max(min, Math.min(max, value));
         }
     }
 
-    // Clase auxiliar para fuerzas
-    private static class Forces {
-        float fx = 0;
-        float fy = 0;
+    private static class Vector2D {
+        float x, y;
     }
 
-    // Estado de la simulación
     private static class SimulationState {
-        private final Config config;
+        private final SimulationConfig config;
         private final List<PhysicTire> tires;
-        private volatile int iteration;
-        private List<PhysicTire> bestConfiguration;
-        private int bestValidTireCount;
-        private boolean testsInProgress;
-        private final List<RemovalTest> activeTests;
-        
+        private final AtomicInteger iteration;
 
-        SimulationState(Config config) {
+        SimulationState(SimulationConfig config) {
             this.config = config;
             this.tires = new ArrayList<>();
-            this.bestConfiguration = new ArrayList<>();
-            this.bestValidTireCount = 0;
-            this.testsInProgress = false;
-            this.activeTests = new ArrayList<>();
-        }   
+            this.iteration = new AtomicInteger(0);
+        }
 
-        synchronized void initialize() {
+        void initialize() {
             tires.clear();
-            iteration = 0;
+            iteration.set(0);
             
-            int tireCount = (int) ((config.containerWidth - config.distBorder * 2) * 
-                                 (config.containerHeight - config.distBorder * 2) /
-                                 (Math.PI * (config.tireRadius + config.distTire) * 
-                                          (config.tireRadius + config.distTire)));
+            int tireCount = config.getMaxWheelCount();
+            float effectiveWidth = config.containerWidth - 2 * config.distBorder;
+            float effectiveHeight = config.containerHeight - 2 * config.distBorder;
             
-            System.out.println("Iniciando simulación con " + tireCount + " ruedas");
+            // Distribuir las ruedas en una cuadrícula inicial aproximada
+            int cols = (int) Math.sqrt(tireCount);
+            int rows = (tireCount + cols - 1) / cols;
             
-            for (int i = 0; i < tireCount; i++) {
-                float randomX = config.distBorder + config.tireRadius + 
-                              (float)(Math.random() * (config.containerWidth - 
-                                     2 * (config.distBorder + config.tireRadius)));
-                float randomY = config.distBorder + config.tireRadius + 
-                              (float)(Math.random() * (config.containerHeight - 
-                                     2 * (config.distBorder + config.tireRadius)));
-                tires.add(new PhysicTire(100, 100, 100, 100, "tire" + i, 
-                                       config.tireRadius, randomX, randomY));
+            float dx = effectiveWidth / cols;
+            float dy = effectiveHeight / rows;
+            
+            int count = 0;
+            for (int i = 0; i < rows && count < tireCount; i++) {
+                for (int j = 0; j < cols && count < tireCount; j++) {
+                    float x = config.distBorder + config.tireRadius + j * dx + 
+                             (float)(Math.random() * dx * 0.5 - dx * 0.25);
+                    float y = config.distBorder + config.tireRadius + i * dy + 
+                             (float)(Math.random() * dy * 0.5 - dy * 0.25);
+                    
+                    tires.add(new PhysicTire(100, 100, 100, 100, 
+                             "tire" + count, config.tireRadius, x, y));
+                    count++;
+                }
             }
         }
 
-        synchronized List<PhysicTire> getTires() { 
+        List<PhysicTire> getTires() {
             return new ArrayList<>(tires); 
         }
         
-        int getIteration() { return iteration; }
-        
-        synchronized void incrementIteration() { iteration++; }
-
-        private synchronized void startRemovalTests() {
-            if (testsInProgress) {
-                return;
-            }
-            
-            activeTests.clear();
-            testsInProgress = true;
-            
-            int currentValidTires = countValidTires(tires);
-            bestValidTireCount = currentValidTires;
-            
-            System.out.println("\n----------------------------------------");
-            System.out.println("INICIANDO EVALUACIÓN DE ELIMINACIÓN DE RUEDAS");
-            System.out.println("Estado actual:");
-            System.out.printf("- Iteración: %,d%n", iteration);
-            System.out.printf("- Ruedas totales: %d%n", tires.size());
-            System.out.printf("- Ruedas válidas: %d%n", currentValidTires);
-            System.out.println("----------------------------------------\n");
-            
-            List<PhysicTire> problematicTires = findProblematicTires();
-            if (problematicTires.isEmpty()) {
-                System.out.println("No se encontraron ruedas problemáticas para eliminar.");
-                testsInProgress = false;
-                return;
-            }
-            
-            System.out.println("Ruedas candidatas para eliminación:");
-            for (int i = 0; i < problematicTires.size(); i++) {
-                PhysicTire tire = problematicTires.get(i);
-                float overlapScore = calculateOverlapScore(tire);
-                float boundaryPenalty = calculateBoundaryPenalty(tire);
-                System.out.printf("%d. Rueda %s:%n", i + 1, tire.getModel());
-                System.out.printf("   - Score de solapamiento: %.3f%n", overlapScore);
-                System.out.printf("   - Penalización de borde: %.3f%n", boundaryPenalty);
-                System.out.printf("   - Score total: %.3f%n", overlapScore + boundaryPenalty);
-            }
-            System.out.println();
-            
-            for (PhysicTire tire : problematicTires) {
-                RemovalTest test = new RemovalTest(new ArrayList<>(tires), tire);
-                activeTests.add(test);
-                test.start();
-            }
+        int getIteration() {
+            return iteration.get();
         }
 
-        private List<PhysicTire> findProblematicTires() {
-            Map<PhysicTire, Float> overlapScores = new HashMap<>();
-            
-            // Calcular puntuación de solapamiento para cada rueda
-            for (PhysicTire tire : tires) {
-                float overlapScore = calculateOverlapScore(tire);
-                float boundaryPenalty = calculateBoundaryPenalty(tire);
-                float totalScore = overlapScore + boundaryPenalty;
-                
-                // Solo considerar ruedas con problemas significativos
-                if (totalScore > 0.1f) {  // Umbral mínimo para considerar una rueda como problemática
-                    overlapScores.put(tire, totalScore);
-                }
-            }
-            
-            // Seleccionar hasta 3 ruedas más problemáticas
-            return overlapScores.entrySet().stream()
-                .sorted(Map.Entry.<PhysicTire, Float>comparingByValue().reversed())
-                .limit(3)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+        void incrementIteration() {
+            iteration.incrementAndGet();
         }
 
-        private float calculateOverlapScore(PhysicTire tire) {
-            float score = 0;
-            for (PhysicTire other : tires) {
-                if (tire == other) continue;
-                float distance = calculateDistance(tire, other);
-                float minDistance = config.tireRadius * 2 + config.distTire;
-                if (distance < minDistance) {
-                    score += (minDistance - distance) / minDistance;
-                }
-            }
-            return score;
+        int countValidTires() {
+            return (int) tires.stream()
+                            .filter(this::isValidTire)
+                            .count();
+        }
+
+        private boolean isValidTire(PhysicTire tire) {
+            return isWithinBounds(tire) && !hasCollisions(tire);
+        }
+
+        private boolean isWithinBounds(PhysicTire tire) {
+            return tire.getX() - config.tireRadius >= config.distBorder &&
+                   tire.getX() + config.tireRadius <= config.containerWidth - config.distBorder &&
+                   tire.getY() - config.tireRadius >= config.distBorder &&
+                   tire.getY() + config.tireRadius <= config.containerHeight - config.distBorder;
+        }
+
+        private boolean hasCollisions(PhysicTire tire) {
+            return tires.stream()
+                       .filter(other -> other != tire)
+                       .anyMatch(other -> calculateDistance(tire, other) < 
+                                        2 * config.tireRadius + config.distTire);
         }
 
         private float calculateDistance(PhysicTire t1, PhysicTire t2) {
@@ -391,161 +437,22 @@ public class MaxForceOptimization implements AbstractOptimization {
             return (float) Math.sqrt(dx * dx + dy * dy);
         }
 
-        private int countValidTires(List<PhysicTire> tireList) {
-            int count = 0;
-            for (PhysicTire tire : tireList) {
-                boolean isValid = true;
-                // Verificar colisiones con otras ruedas
-                for (PhysicTire other : tireList) {
-                    if (tire == other) continue;
-                    float distance = calculateDistance(tire, other);
-                    if (distance < config.tireRadius * 2 + config.distTire) {
-                        isValid = false;
-                        break;
-                    }
-                }
-                // Verificar límites del contenedor
-                if (isValid && isWithinBounds(tire)) {
-                    count++;
-                }
+        public SimulationState clone() {
+            SimulationState newState = new SimulationState(this.config);
+            newState.iteration.set(this.iteration.get());
+            for (PhysicTire tire : this.tires) {
+                newState.tires.add(new PhysicTire(
+                    tire.getMaxAcceleration(),
+                    tire.getMaxDeceleration(),
+                    tire.getMaxForce(),
+                    tire.getMaxSpeed(),
+                    tire.getModel(),
+                    tire.getRadius(),
+                    tire.getX(),
+                    tire.getY()
+                ));
             }
-            return count;
+            return newState;
         }
-
-        private boolean isWithinBounds(PhysicTire tire) {
-            float x = tire.getX();
-            float y = tire.getY();
-            float r = config.tireRadius;
-            return x - r >= config.distBorder &&
-                   x + r <= config.containerWidth - config.distBorder &&
-                   y - r >= config.distBorder &&
-                   y + r <= config.containerHeight - config.distBorder;
-        }
-
-        private float calculateBoundaryPenalty(PhysicTire tire) {
-            float x = tire.getX();
-            float y = tire.getY();
-            float r = config.tireRadius;
-            float penalty = 0;
-            
-            // Penalizar ruedas cerca de los bordes
-            if (x - r < config.distBorder * 1.5f) {
-                penalty += (config.distBorder * 1.5f - (x - r)) / config.distBorder;
-            }
-            if (x + r > config.containerWidth - config.distBorder * 1.5f) {
-                penalty += ((x + r) - (config.containerWidth - config.distBorder * 1.5f)) / config.distBorder;
-            }
-            if (y - r < config.distBorder * 1.5f) {
-                penalty += (config.distBorder * 1.5f - (y - r)) / config.distBorder;
-            }
-            if (y + r > config.containerHeight - config.distBorder * 1.5f) {
-                penalty += ((y + r) - (config.containerHeight - config.distBorder * 1.5f)) / config.distBorder;
-            }
-            
-            return penalty;
-        }
-
-        private class RemovalTest extends Thread {
-            private final List<PhysicTire> testTires;
-            private final PhysicTire removedTire;
-            private int validTireCount;
-            private static final int TEST_ITERATIONS = 10000;
-            private List<PhysicTire> finalConfiguration;
-
-            RemovalTest(List<PhysicTire> originalTires, PhysicTire tireToRemove) {
-                this.testTires = new ArrayList<>(originalTires); // Hacer copia explícita
-                this.removedTire = tireToRemove;
-                this.testTires.remove(tireToRemove);
-                setName("RemovalTest-" + removedTire.getModel());
-            }
-
-            @Override
-            public void run() {
-                PhysicsEngine testEngine = new PhysicsEngine(config);
-                List<PhysicTire> bestTestConfiguration = null;
-                
-                System.out.printf("\nIniciando prueba para %s:%n", removedTire.getModel());
-                System.out.println("- Configuración inicial: " + testTires.size() + " ruedas");
-                
-                // Ejecutar simulación de prueba
-                for (int i = 0; i < TEST_ITERATIONS; i++) {
-                    testEngine.simulatePhysics(testTires);
-                    
-                    // Guardar la mejor configuración encontrada durante la prueba
-                    int currentValidCount = countValidTires(testTires);
-                    if (currentValidCount > validTireCount || 
-                        (currentValidCount == validTireCount )) {
-                        validTireCount = currentValidCount;
-                        bestTestConfiguration = new ArrayList<>(testTires);
-                        
-                        if (i % 1000 == 0) {
-                            System.out.printf("  Iteración %d: %d ruedas válidas", 
-                                i, currentValidCount);
-                        }
-                    }
-                }
-                
-                // Usar la mejor configuración encontrada
-                if (bestTestConfiguration != null) {
-                    testTires.clear();
-                    testTires.addAll(bestTestConfiguration);
-                }
-                
-                finalConfiguration = new ArrayList<>(testTires);
-                
-                synchronized (SimulationState.this) {
-                    System.out.printf("\nResultados de prueba para %s:%n", removedTire.getModel());
-                    System.out.printf("- Ruedas válidas: %d%n", validTireCount);
-                    
-                    if (validTireCount > bestValidTireCount) {
-                        bestValidTireCount = validTireCount;
-                        bestConfiguration = new ArrayList<>(finalConfiguration);
-                        System.out.println("¡MEJOR CONFIGURACIÓN ENCONTRADA!");
-                    }
-                    
-                    checkTestsCompletion();
-                }
-            }
-        }
-
-        private synchronized void checkTestsCompletion() {
-            boolean allTestsComplete = activeTests.stream()
-                .allMatch(test -> !test.isAlive());
-                
-            if (allTestsComplete && testsInProgress) {
-                testsInProgress = false;
-                
-                System.out.println("\n----------------------------------------");
-                System.out.println("RESULTADOS DE LA EVALUACIÓN:");
-                
-                if (bestConfiguration != null && !bestConfiguration.isEmpty() && 
-                    bestValidTireCount > countValidTires(tires)) {
-                    
-                    int previousValid = countValidTires(tires);
-                    System.out.println("SE APLICARÁ NUEVA CONFIGURACIÓN");
-                    System.out.println("Motivos:");
-                    System.out.printf("- Ruedas válidas anteriores: %d%n", previousValid);
-                    System.out.printf("- Ruedas válidas nuevas: %d%n", bestValidTireCount);
-                    System.out.printf("- Mejora neta: %d ruedas%n", bestValidTireCount - previousValid);
-
-                    
-                    tires.clear();
-                    tires.addAll(bestConfiguration);
-                } else {
-                    System.out.println("NO SE APLICARÁN CAMBIOS");
-                    System.out.println("Motivos:");
-                    if (bestConfiguration == null || bestConfiguration.isEmpty()) {
-                        System.out.println("- No se encontró ninguna configuración válida");
-                    } else {
-                        System.out.printf("- Ruedas válidas actuales: %d%n", countValidTires(tires));
-                        System.out.printf("- Mejor resultado encontrado: %d ruedas%n", bestValidTireCount);
-                        System.out.println("- No hay mejora significativa");
-                    }
-                }
-                System.out.println("----------------------------------------\n");
-            
-            }
-        }
-
     }
 }
