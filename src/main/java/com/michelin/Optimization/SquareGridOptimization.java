@@ -33,7 +33,7 @@ public class SquareGridOptimization implements AbstractOptimization {
         float effectiveHeight = height - 2 * ( distBorder);
         
         // Calculate spacing between tire centers
-        float tireSpacing = 2 * radius + distTire;
+        float tireSpacing = 2 * radius + distTire / 2;
         
         // Calculate number of tires that can fit in each direction
         int tiresPerRow = (int)(effectiveWidth / tireSpacing);
