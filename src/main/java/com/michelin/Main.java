@@ -20,6 +20,7 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -225,6 +226,34 @@ public class Main extends Application {
                     tireCountLabel,
                     regenerateBtn);
 
+            // Agregar un checkbox para activar/desactivar las franjas diagonales
+            CheckBox showStripesCheckbox = new CheckBox("Mostrar franjas diagonales");
+            showStripesCheckbox.setSelected(false); // Por defecto desactivado
+            controls.getChildren().add(showStripesCheckbox);
+
+            // Listener para el checkbox de mostrar franjas diagonales
+            showStripesCheckbox.selectedProperty().addListener((obs, oldVal, newVal) -> {
+                gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                gc.setFill(Color.LIGHTGRAY);
+                gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
+                gc.strokeRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+                // Dibujar las franjas diagonales y las esquinas negras
+                drawDiagonalStripes(gc, canvas.getWidth(), canvas.getHeight(), distBorderSlider.getValue(), newVal);
+                drawCornerSquares(gc, canvas.getWidth(), canvas.getHeight(), distBorderSlider.getValue(), newVal);
+
+                // Redibujar los neumáticos existentes con sus números
+                if (optimizationMethod != null) {
+                    List<Tire> currentTires = optimizationMethod.getResult();
+                    for (int i = 0; i < currentTires.size(); i++) {
+                        Tire tire = currentTires.get(i);
+                        tire.draw(gc);
+                        drawTireNumber(gc, tire, i + 1);
+                    }
+                }
+            });
+
             // Add listeners to update container size in real-time
             widthSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
                 canvas.setWidth(newVal.doubleValue());
@@ -234,6 +263,8 @@ public class Main extends Application {
                 gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
                 gc.strokeRect(0, 0, canvas.getWidth(), canvas.getHeight());
                 drawAxes(gc, canvas.getWidth(), canvas.getHeight());
+                drawDiagonalStripes(gc, canvas.getWidth(), canvas.getHeight(), distBorderSlider.getValue(),
+                        showStripesCheckbox.isSelected());
             });
 
             heightSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -244,6 +275,13 @@ public class Main extends Application {
                 gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
                 gc.strokeRect(0, 0, canvas.getWidth(), canvas.getHeight());
                 drawAxes(gc, canvas.getWidth(), canvas.getHeight());
+                drawDiagonalStripes(gc, canvas.getWidth(), canvas.getHeight(), distBorderSlider.getValue(),
+                        showStripesCheckbox.isSelected());
+            });
+
+            distBorderSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+                drawDiagonalStripes(gc, canvas.getWidth(), canvas.getHeight(), newVal.doubleValue(),
+                        showStripesCheckbox.isSelected());
             });
 
             // Reference to current animation timer to be able to stop it
@@ -251,6 +289,8 @@ public class Main extends Application {
 
             // Add regeneration handler
             regenerateBtn.setOnAction(e -> {
+                // Desactivar el checkbox de mostrar franjas diagonales
+                showStripesCheckbox.setSelected(false);
 
                 // Llamar a resetTireCount antes de cualquier otra acción
                 Tire.resetTireCount();
@@ -273,6 +313,10 @@ public class Main extends Application {
 
                 // Borrar los ejes antes de iniciar la optimización
                 clearAxes(gc, newWidth, newHeight);
+
+                // Dibujar las franjas diagonales si están activadas
+                drawDiagonalStripes(gc, newWidth, newHeight, distBorderSlider.getValue(),
+                        showStripesCheckbox.isSelected());
 
                 try {
                     // Create optimization based on selected class
@@ -469,6 +513,79 @@ public class Main extends Application {
         }
         // Establecer el texto de la lista de coordenadas
         coordinatesListView.getItems().setAll(coordinates.toString().split("\n"));
+    }
+
+    // Nueva función para dibujar las franjas diagonales
+    private void drawDiagonalStripes(GraphicsContext gc, double width, double height, double borderDistance,
+            boolean showStripes) {
+        if (!showStripes) {
+            return;
+        }
+
+        gc.setLineWidth(2);
+
+        // Dibujar franjas diagonales en el borde superior
+        for (double x = 0; x < width; x += 20) {
+            gc.setStroke(Color.BLACK);
+            gc.strokeLine(x, 0, x - 20, borderDistance);
+            gc.setStroke(Color.GRAY);
+            gc.strokeLine(x + 10, 0, x - 10, borderDistance);
+        }
+
+        // Dibujar franjas diagonales en el borde inferior
+        for (double x = 0; x < width; x += 20) {
+            gc.setStroke(Color.BLACK);
+            gc.strokeLine(x, height, x - 20, height - borderDistance);
+            gc.setStroke(Color.GRAY);
+            gc.strokeLine(x + 10, height, x - 10, height - borderDistance);
+        }
+
+        // Dibujar franjas diagonales en el borde izquierdo
+        for (double y = 0; y < height; y += 20) {
+            gc.setStroke(Color.BLACK);
+            gc.strokeLine(0, y, borderDistance, y - 20);
+            gc.setStroke(Color.GRAY);
+            gc.strokeLine(0, y + 10, borderDistance, y - 10);
+        }
+
+        // Dibujar franjas diagonales en el borde derecho
+        for (double y = 0; y < height; y += 20) {
+            gc.setStroke(Color.BLACK);
+            gc.strokeLine(width, y, width - borderDistance, y - 20);
+            gc.setStroke(Color.GRAY);
+            gc.strokeLine(width, y + 10, width - borderDistance, y - 10);
+        }
+    }
+
+    // Nueva función para dibujar las esquinas negras
+    private void drawCornerSquares(GraphicsContext gc, double width, double height, double borderDistance,
+            boolean showCorners) {
+        if (!showCorners) {
+            return;
+        }
+
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0, 0, borderDistance, borderDistance); // Esquina superior izquierda
+        gc.fillRect(width - borderDistance, 0, borderDistance, borderDistance); // Esquina superior derecha
+        gc.fillRect(0, height - borderDistance, borderDistance, borderDistance); // Esquina inferior izquierda
+        gc.fillRect(width - borderDistance, height - borderDistance, borderDistance, borderDistance); // Esquina
+                                                                                                      // inferior
+                                                                                                      // derecha
+    }
+
+    // Nueva función para dibujar el número de un neumático
+    private void drawTireNumber(GraphicsContext gc, Tire tire, int number) {
+        double x = tire.getPositionX();
+        double y = tire.getPositionY();
+        double r = tire.getRadius();
+
+        gc.setFill(Color.WHITE);
+        gc.setStroke(Color.BLACK);
+        gc.setLineWidth(1);
+        gc.setFont(Font.font("Algerian", FontWeight.BOLD, r / 2)); // Tamaño de fuente dinámico
+        double textWidth = gc.getFont().getSize() / 2 * String.valueOf(number).length();
+        double textHeight = gc.getFont().getSize() / 2;
+        gc.fillText(String.valueOf(number), x - textWidth / 2, y + textHeight / 2);
     }
 
     public static void main(String[] args) {
