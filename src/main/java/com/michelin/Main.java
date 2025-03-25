@@ -407,6 +407,7 @@ public class Main extends Application {
 
                 } catch (IllegalAccessException | IllegalArgumentException | InstantiationException
                         | NoSuchMethodException | SecurityException | InvocationTargetException ex) {
+                    optimizationMethod.stop();
                     ex.printStackTrace();
                 }
 
@@ -419,6 +420,14 @@ public class Main extends Application {
             StackPane.setAlignment(tabPane, Pos.CENTER_RIGHT);
             Scene scene = new Scene(root, width, height);
 
+            // Agregar un manejador para cuando se cierre la ventana
+            primaryStage.setOnCloseRequest(event -> {
+                if (optimizationMethod != null) {
+                    optimizationMethod.stop();
+                }
+                Platform.exit();
+            });
+
             primaryStage.setTitle("Aplicación Michelin");
             primaryStage.setScene(scene);
             primaryStage.show();
@@ -427,6 +436,9 @@ public class Main extends Application {
             // frente
             drawAxes(gc, width, height);
         } catch (Exception e) {
+            if (optimizationMethod != null) {
+                optimizationMethod.stop();
+            }
             e.printStackTrace();
             Platform.exit();
         }
@@ -592,6 +604,7 @@ public class Main extends Application {
         try {
             launch(args);
         } catch (Exception e) {
+            e.printStackTrace();
             System.exit(1);
         }
     }

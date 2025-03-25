@@ -9,5 +9,5 @@ public interface AbstractOptimization {
     public void run();
     public List<Tire> getResult();
     public boolean isFinished();
-
+    public default void stop(){};
 }

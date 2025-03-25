@@ -55,4 +55,8 @@ public class PhysicTire extends Tire{
     public void setY(float f) {
         super.setPositionY(f);
     }
+
+    public PhysicTire clone() {
+        return new PhysicTire(maxAcceleration, maxDeceleration, maxForce, maxSpeed, super.getModel(), super.getRadius(), super.getPositionX(), super.getPositionY());
+    }
 }
