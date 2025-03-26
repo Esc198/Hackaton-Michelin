@@ -249,12 +249,11 @@ public class Main extends Application {
                     for (int i = 0; i < currentTires.size(); i++) {
                         Tire tire = currentTires.get(i);
                         tire.draw(gc);
-                        drawNumber(gc, currentTires, (int) canvas.getWidth(), (int) canvas.getHeight(), (int) distBorderSlider.getValue());
+                        drawNumber(gc, currentTires, (int) canvas.getWidth(), (int) canvas.getHeight(),
+                                (int) distBorderSlider.getValue());
                     }
                 }
             });
-
-
 
             // Add listeners to update container size in real-time
             widthSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -512,14 +511,10 @@ public class Main extends Application {
                 gc.setFill(Color.WHITE);
                 gc.setStroke(Color.BLACK);
                 gc.setLineWidth(1);
-                gc.setFont(Font.font("Algerian", FontWeight.BOLD, r * 10));
-                String number = String.valueOf(i + 1);
-
-                // Ajustar el cálculo de las posiciones del texto
-                double textWidth = gc.getFont().getSize() * number.length() / 4.0;
-                double textHeight = gc.getFont().getSize() / 4.0;
-                gc.fillText(number, x - textWidth, y + textHeight);
-                gc.strokeText(number, x - textWidth, y + textHeight);
+                gc.setFont(Font.font("Algerian", FontWeight.BOLD, r / 2)); // Tamaño de fuente dinámico
+                double textWidth = gc.getFont().getSize() / 2 * String.valueOf(i + 1).length();
+                double textHeight = gc.getFont().getSize() / 2;
+                gc.fillText(String.valueOf(i + 1), x - textWidth / 2, y + textHeight / 2);
 
                 // Agregar coordenadas al texto
                 coordinates.append("Rueda ").append(i + 1).append(": (")
@@ -589,8 +584,6 @@ public class Main extends Application {
                                                                                                       // inferior
                                                                                                       // derecha
     }
-
-
 
     public static void main(String[] args) {
         try {

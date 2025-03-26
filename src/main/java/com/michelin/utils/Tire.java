@@ -81,23 +81,26 @@ public class Tire {
 
         // Add tread pattern
         gc.setLineWidth(2);
+        gc.setStroke(Color.GRAY);
         for (int i = 0; i < 8; i++) {
             double angle = i * Math.PI / 4;
-            double startX = positionX + Math.cos(angle) * (r - 10);
-            double startY = positionY + Math.sin(angle) * (r - 10);
-            double endX = positionX + Math.cos(angle) * (r - 20);
-            double endY = positionY + Math.sin(angle) * (r - 20);
+            double startX = positionX * 1000.0 + Math.cos(angle) * (r - 10);
+            double startY = positionY * 1000.0 + Math.sin(angle) * (r - 10);
+            double endX = positionX * 1000.0 + Math.cos(angle) * (r - 20);
+            double endY = positionY * 1000.0 + Math.sin(angle) * (r - 20);
             gc.strokeLine(startX, startY, endX, endY);
 
         }
     }
+
     public void drawInvalid(GraphicsContext gc) {
         Color originalColor = color;
         color = Color.RED;
         draw(gc);
         color = originalColor;
     }
-        @Override
+
+    @Override
     public String toString() {
         return "Tire{" +
                 "model='" + model + '\'' +
@@ -113,8 +116,8 @@ public class Tire {
         tireCount = 0;
     }
 
-
-    public static boolean isValidTire(Tire tire, long  width, long height, long distBorder, List<Tire> tires, long distTire) {
+    public static boolean isValidTire(Tire tire, long width, long height, long distBorder, List<Tire> tires,
+            long distTire) {
         long x = tire.getPositionX();
         long y = tire.getPositionY();
         long r = tire.getRadius();
@@ -126,11 +129,13 @@ public class Tire {
             long otherY = otherTire.getPositionY();
             long distance = (long) Math.sqrt((x - otherX) * (x - otherX) + (y - otherY) * (y - otherY));
             if (distance < r + otherTire.getRadius() + distTire - 1) {
-                System.err.println("distancia" + distance + "r" + r + "otherTire.getRadius()" + otherTire.getRadius() + "distTire" + distTire);
+                System.err.println("distancia" + distance + "r" + r + "otherTire.getRadius()" + otherTire.getRadius()
+                        + "distTire" + distTire);
                 return false;
             }
         }
-        return x - r >= distBorder && x + r <= width - distBorder && y - r >= distBorder && y + r <= height - distBorder;
+        return x - r >= distBorder && x + r <= width - distBorder && y - r >= distBorder
+                && y + r <= height - distBorder;
     }
 
 }
