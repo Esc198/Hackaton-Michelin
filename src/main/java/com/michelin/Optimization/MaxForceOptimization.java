@@ -2,6 +2,7 @@ package com.michelin.Optimization;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
@@ -52,7 +53,7 @@ public class MaxForceOptimization implements AbstractOptimization {
             final int threadIndex = i;
             executor.execute(() -> {
                 
-                Physic physic = new Physic(tireRadius, containerWidth, containerHeight, distBorder, distTire);
+                Physic physic = new Physic(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000, threadIndex);
                 physic.setup();
                 
                 while (!physic.isFinished()) {
@@ -78,7 +79,10 @@ public class MaxForceOptimization implements AbstractOptimization {
 
 	@Override
 	public List<Tire> getResult() {
-		return this.bestConfiguration.get(this.bestConfiguration.keySet().stream().max(Integer::compareTo).orElse(0));
+		return this.bestConfiguration.get(this.ValidTires.entrySet().stream()
+				.max(Map.Entry.comparingByValue())
+				.map(Map.Entry::getKey)
+				.orElse(0));
 	}
 
 	@Override
