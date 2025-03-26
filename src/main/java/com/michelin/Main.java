@@ -51,17 +51,17 @@ public class Main extends Application {
             Canvas canvas = new Canvas(800, 600);
             GraphicsContext gc = canvas.getGraphicsContext2D();
 
-            float radius = 100;
-            float width = 800;
-            float height = 600;
-            float distBorder = 100;
-            float distTire = 100;
+            long radius = 100000; // Internamente en base a mil
+            long width = 800000; // Internamente en base a mil
+            long height = 600000; // Internamente en base a mil
+            long distBorder = 100000; // Internamente en base a mil
+            long distTire = 100000; // Internamente en base a mil
 
             // Draw container rectangle with light gray fill
             gc.setFill(Color.LIGHTGRAY);
-            gc.fillRect(0, 0, width, height);
+            gc.fillRect(0, 0, width / 1000, height / 1000);
             gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
-            gc.strokeRect(0, 0, width, height);
+            gc.strokeRect(0, 0, width / 1000, height / 1000);
 
             // Create control panel
             VBox controls = new VBox(10);
@@ -96,8 +96,7 @@ public class Main extends Application {
                     HexagonalOptimization.class,
                     SquareGridOptimization.class,
                     MaxForceOptimization.class,
-                    SinglePhisicOptimization.class
-                    );
+                    SinglePhisicOptimization.class);
 
             optimizationDropdown.getItems().addAll(optimizationClasses);
             if (!optimizationClasses.isEmpty()) {
@@ -120,38 +119,38 @@ public class Main extends Application {
 
             optimizationDropdown.setButtonCell(optimizationDropdown.getCellFactory().call(null));
 
-            // Add sliders and text fields for parameters
-            Slider radiusSlider = new Slider(20, 200, radius);
+            // Modificar sliders y text fields para trabajar en base a mil
+            Slider radiusSlider = new Slider(20000, 200000, radius / 1000);
             radiusSlider.setShowTickLabels(true);
             radiusSlider.setShowTickMarks(true);
-            TextField radiusField = new TextField(String.valueOf(radius));
+            TextField radiusField = new TextField(String.valueOf(radius / 1000));
             radiusField.setMaxWidth(60);
 
-            Slider widthSlider = new Slider(400, 1200, width);
+            Slider widthSlider = new Slider(400000, 1200000, width / 1000);
             widthSlider.setShowTickLabels(true);
             widthSlider.setShowTickMarks(true);
-            TextField widthField = new TextField(String.valueOf(width));
+            TextField widthField = new TextField(String.valueOf(width / 1000));
             widthField.setMaxWidth(60);
 
-            Slider heightSlider = new Slider(300, 900, height);
+            Slider heightSlider = new Slider(300000, 900000, height / 1000);
             heightSlider.setShowTickLabels(true);
             heightSlider.setShowTickMarks(true);
-            TextField heightField = new TextField(String.valueOf(height));
+            TextField heightField = new TextField(String.valueOf(height / 1000));
             heightField.setMaxWidth(60);
 
-            Slider distBorderSlider = new Slider(0, 200, distBorder);
+            Slider distBorderSlider = new Slider(0, 200000, distBorder / 1000);
             distBorderSlider.setShowTickLabels(true);
             distBorderSlider.setShowTickMarks(true);
-            TextField distBorderField = new TextField(String.valueOf(distBorder));
+            TextField distBorderField = new TextField(String.valueOf(distBorder / 1000));
             distBorderField.setMaxWidth(60);
 
-            Slider distTireSlider = new Slider(0, 200, distTire);
+            Slider distTireSlider = new Slider(0, 200000, distTire / 1000);
             distTireSlider.setShowTickLabels(true);
             distTireSlider.setShowTickMarks(true);
-            TextField distTireField = new TextField(String.valueOf(distTire));
+            TextField distTireField = new TextField(String.valueOf(distTire / 1000));
             distTireField.setMaxWidth(60);
 
-            // Sync sliders with text fields
+            // Sincronizar sliders con text fields en base a mil
             radiusSlider.valueProperty()
                     .addListener((obs, oldVal, newVal) -> radiusField.setText(String.valueOf(newVal.intValue())));
             radiusField.setOnAction(e -> radiusSlider.setValue(Double.parseDouble(radiusField.getText())));
@@ -325,12 +324,12 @@ public class Main extends Application {
                     // Create optimization based on selected class
                     Class<? extends AbstractOptimization> selectedClass = optimizationDropdown.getValue();
                     optimizationMethod = selectedClass.getDeclaredConstructor(
-                            float.class, float.class, float.class, float.class, float.class).newInstance(
-                                    (float) radiusSlider.getValue(),
-                                    (float) newWidth,
-                                    (float) newHeight,
-                                    (float) distBorderSlider.getValue(),
-                                    (float) distTireSlider.getValue());
+                            long.class, long.class, long.class, long.class, long.class).newInstance(
+                                    (long) (radiusSlider.getValue() * 1000),
+                                    (long) (newWidth * 1000),
+                                    (long) (newHeight * 1000),
+                                    (long) (distBorderSlider.getValue() * 1000),
+                                    (long) (distTireSlider.getValue() * 1000));
 
                     optimizationMethod.setup();
 
@@ -354,7 +353,8 @@ public class Main extends Application {
 
                             for (Tire tire : currentTires) {
 
-                                if (Tire.isValidTire(tire, widthSlider.getValue(), heightSlider.getValue(), distBorderSlider.getValue(), currentTires, distTireSlider.getValue())) {
+                                if (Tire.isValidTire(tire, widthSlider.getValue(), heightSlider.getValue(),
+                                        distBorderSlider.getValue(), currentTires, distTireSlider.getValue())) {
                                     validTires++;
                                 }
 
@@ -371,18 +371,18 @@ public class Main extends Application {
                                 double y = tire.getPositionY();
                                 double r = tire.getRadius();
 
-                                if (x - r >= distBorderSlider.getValue() &&
-                                        x + r <= widthSlider.getValue() - distBorderSlider.getValue() &&
-                                        y - r >= distBorderSlider.getValue() &&
-                                        y + r <= heightSlider.getValue() - distBorderSlider.getValue()) {
+                                if (x - r >= distBorderSlider.getValue() * 1000 &&
+                                        x + r <= widthSlider.getValue() * 1000 - distBorderSlider.getValue() * 1000 &&
+                                        y - r >= distBorderSlider.getValue() * 1000 &&
+                                        y + r <= heightSlider.getValue() * 1000 - distBorderSlider.getValue() * 1000) {
                                     totalTireArea += Math.PI * r * r; // Área de un círculo
                                 }
                             }
 
-                            double containerArea = widthSlider.getValue() * heightSlider.getValue();
+                            double containerArea = widthSlider.getValue() * heightSlider.getValue() * 1000000;
                             double occupancyPercentage = (totalTireArea / containerArea) * 100;
 
-                            // Actualizar el prcentage de ocupación
+                            // Actualizar el porcentaje de ocupación
                             occupancyLabel.setText(String.format("Ocupación: %.2f%% ", occupancyPercentage));
 
                             // Check if optimization is complete
@@ -416,7 +416,7 @@ public class Main extends Application {
             // Create the scene
             StackPane root = new StackPane(canvas, tabPane);
             StackPane.setAlignment(tabPane, Pos.CENTER_RIGHT);
-            Scene scene = new Scene(root, width, height);
+            Scene scene = new Scene(root, width / 1000, height / 1000);
 
             // Agregar un manejador para cuando se cierre la ventana
             primaryStage.setOnCloseRequest(event -> {
@@ -432,7 +432,7 @@ public class Main extends Application {
 
             // Dibujar los ejes después de mostrar la escena para asegurar que estén al
             // frente
-            drawAxes(gc, width, height);
+            drawAxes(gc, width / 1000, height / 1000);
         } catch (Exception e) {
             if (optimizationMethod != null) {
                 optimizationMethod.stop();
@@ -516,7 +516,8 @@ public class Main extends Application {
                 double textWidth = gc.getFont().getSize() / 2 * String.valueOf(i + 1).length();
                 double textHeight = gc.getFont().getSize() / 2;
                 gc.fillText(String.valueOf(i + 1), x - textWidth / 2, y + textHeight / 2);
-                coordinates.append("Rueda ").append(i).append(1).append(": (").append(String.format("%.2f", x)).append(", ").append(String.format("%.2f", y)).append(")\n");
+                coordinates.append("Rueda ").append(i).append(1).append(": (").append(String.format("%.2f", x))
+                        .append(", ").append(String.format("%.2f", y)).append(")\n");
             }
 
         }
@@ -605,6 +606,5 @@ public class Main extends Application {
             System.exit(1);
         }
     }
-
 
 }
