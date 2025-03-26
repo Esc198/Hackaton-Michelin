@@ -263,7 +263,7 @@ public class Main extends Application {
                 gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
                 gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
                 gc.strokeRect(0, 0, canvas.getWidth(), canvas.getHeight());
-                drawAxes(gc, canvas.getWidth(), canvas.getHeight());
+                drawAxes(gc);
                 drawDiagonalStripes(gc, canvas.getWidth(), canvas.getHeight(), distBorderSlider.getValue(),
                         showStripesCheckbox.isSelected());
             });
@@ -275,7 +275,7 @@ public class Main extends Application {
                 gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
                 gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
                 gc.strokeRect(0, 0, canvas.getWidth(), canvas.getHeight());
-                drawAxes(gc, canvas.getWidth(), canvas.getHeight());
+                drawAxes(gc);
                 drawDiagonalStripes(gc, canvas.getWidth(), canvas.getHeight(), distBorderSlider.getValue(),
                         showStripesCheckbox.isSelected());
             });
@@ -295,8 +295,12 @@ public class Main extends Application {
 
                 // Llamar a resetTireCount antes de cualquier otra acción
                 Tire.resetTireCount();
+                if (optimizationMethod != null && !optimizationMethod.isFinished()) {
+                    optimizationMethod.stop();
+                }
                 // Stop current optimization if running
                 if (currentTimer[0] != null) {
+
                     currentTimer[0].stop();
                 }
 
@@ -313,7 +317,7 @@ public class Main extends Application {
                 gc.strokeRect(0, 0, newWidth, newHeight);
 
                 // Borrar los ejes antes de iniciar la optimización
-                clearAxes(gc, newWidth, newHeight);
+                clearAxes(gc);
 
                 // Dibujar las franjas diagonales si están activadas
                 drawDiagonalStripes(gc, newWidth, newHeight, distBorderSlider.getValue(),
@@ -433,7 +437,7 @@ public class Main extends Application {
 
             // Dibujar los ejes después de mostrar la escena para asegurar que estén al
             // frente
-            drawAxes(gc, width, height);
+            drawAxes(gc);
         } catch (Exception e) {
             if (optimizationMethod != null) {
                 optimizationMethod.stop();
@@ -444,7 +448,7 @@ public class Main extends Application {
     }
 
     // Nueva función para dibujar los ejes
-    private void drawAxes(GraphicsContext gc, double width, double height) {
+    private void drawAxes(GraphicsContext gc) {
         double arrowLength = 60; // 5 cm en píxeles (asumiendo 10 píxeles por cm)
         double startX = 15; // Ajustar la posición de la línea del borde izquierdo
         double startY = 15; // Ajustar la posición de la línea del borde superior
@@ -465,7 +469,7 @@ public class Main extends Application {
     }
 
     // Nueva función para borrar los ejes
-    private void clearAxes(GraphicsContext gc, double width, double height) {
+    private void clearAxes(GraphicsContext gc) {
         double arrowLength = 50; // 5 cm en píxeles (asumiendo 10 píxeles por cm)
         double startX = 10; // Ajustar la posición de la línea del borde izquierdo
         double startY = 10; // Ajustar la posición de la línea del borde superior

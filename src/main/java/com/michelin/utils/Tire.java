@@ -129,8 +129,6 @@ public class Tire {
             long otherY = otherTire.getPositionY();
             long distance = (long) Math.sqrt((x - otherX) * (x - otherX) + (y - otherY) * (y - otherY));
             if (distance < r + otherTire.getRadius() + distTire - 1) {
-                System.err.println("distancia" + distance + "r" + r + "otherTire.getRadius()" + otherTire.getRadius()
-                        + "distTire" + distTire);
                 return false;
             }
         }
