@@ -51,8 +51,6 @@ public class MaxForceOptimization implements AbstractOptimization {
 
         // Inicializar con optimizaciones básicas
         int bestInitialCount = runInitialOptimizations();
-
-        // Preparar lista de conteos
         int maxWheelCount = config.getMaxWheelCount();
 
         // Inicializar lista de resultados
@@ -60,30 +58,28 @@ public class MaxForceOptimization implements AbstractOptimization {
             bestConfiguration.put(i, new ArrayList<>());
         }
 
-        // Inicializar lista de ruedas iniciales
-        List<PhysicTire> initialTires = new ArrayList<>();
-        for (int i = 0; i < bestInitialCount; i++) {
-            initialTires.add(generateRandomTire(config.tireRadius, config.containerWidth, config.containerHeight,
-                    config.distBorder, config.distTire));
-        }
-
         System.out.println("Iniciando simulaciones...");
-        // Iniciar simulaciones
+        
+        // Crear todas las simulaciones de una vez
         for (int i = bestInitialCount; i < maxWheelCount; i++) {
             final int simIndex = i - bestInitialCount;
-            initialTires.add(generateRandomTire(config.tireRadius, config.containerWidth, config.containerHeight,
-                    config.distBorder, config.distTire));
-            System.out.println("Simulación " + simIndex + " iniciada con " + initialTires.size() + " ruedas");
-            List<PhysicTire> initialTiresClone = initialTires.stream()
-                    .map(PhysicTire::clone)
-                    .collect(Collectors.toList());
+            final int targetTireCount = i + 1;  // Número de ruedas para esta simulación
+            
+            // Crear una lista nueva para cada simulación
+            List<PhysicTire> simulationTires = new ArrayList<>();
+            for (int j = 0; j < targetTireCount; j++) {
+                simulationTires.add(generateRandomTire(config.tireRadius, config.containerWidth, 
+                    config.containerHeight, config.distBorder, config.distTire));
+            }
+            
+            System.out.println("Simulación " + simIndex + " iniciada con " + simulationTires.size() + " ruedas");
+            
+            // Crear y ejecutar la simulación en su propio hilo
+            final List<PhysicTire> finalTires = new ArrayList<>(simulationTires);
             executor.submit(() -> {
                 try {
-                    // Crear engine de física, internamente crea un clon del array de ruedas para no
-                    // modificar el original
-                    PhysicsEngine physicsEngine = new PhysicsEngine(config, initialTiresClone);
+                    PhysicsEngine physicsEngine = new PhysicsEngine(config, finalTires);
                     runSimulation(physicsEngine, simIndex);
-
                 } catch (InterruptedException e) {
                     System.err.println("Simulación " + simIndex + " interrumpida");
                     Thread.currentThread().interrupt();
