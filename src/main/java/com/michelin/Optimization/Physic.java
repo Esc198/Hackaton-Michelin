@@ -2,12 +2,17 @@ package com.michelin.Optimization;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 import java.util.stream.Collectors;
 
 import com.michelin.utils.PhysicTire;
 import com.michelin.utils.Tire;
-public class single implements AbstractOptimization {
+public class Physic implements AbstractOptimization {
+    
+    
+    
+    
+    
+    
     private static class Vector2D {
         long x, y;
     }
@@ -35,10 +40,6 @@ public class single implements AbstractOptimization {
             this.maxIteration = maxIteration;
         }
 
-        int getMaxWheelCount() {
-            return (int) ((containerWidth - 2 * distBorder) * (containerHeight - 2 * distBorder) /
-                    (Math.PI * Math.pow(tireRadius + distTire, 2)));
-        }
     }
 
     private static class PhysicsEngine {
@@ -68,7 +69,6 @@ public class single implements AbstractOptimization {
 
             // Fuerzas de bordes
             addBorderForces(tire, force);
-            System.out.println("Fuerza: " + force.x + " " + force.y);
 
             return force;
         }
@@ -116,13 +116,6 @@ public class single implements AbstractOptimization {
                 }
             }
             
-            if (Math.abs(force.x) > 0 || Math.abs(force.y) > 0) {
-                System.out.println("Rueda en (" + tire.getX() + "," + tire.getY() + "):");
-                System.out.println("  Distancias [izq, der, sup, inf]: " + 
-                                 distances[0] + ", " + distances[1] + ", " + 
-                                 distances[2] + ", " + distances[3]);
-                System.out.println("  Fuerzas resultantes: Fx=" + force.x + " Fy=" + force.y);
-            }
         }
 
         private void updateTirePhysics(PhysicTire tire, Vector2D force) {
@@ -167,45 +160,37 @@ public class single implements AbstractOptimization {
             return tires;
         }
 
-        private int countValidTires() {
-            return (int) tires.stream().filter(tire -> PhysicTire.isValidTire(tire, config.containerWidth,
-                    config.containerHeight, config.distBorder, tires, config.distTire)).count();
-        }
     }
 
     private final SimulationConfig config;
     private final List<PhysicTire> tires;
     private final PhysicsEngine engine;
     private boolean isRunning;
-    private Scanner scanner;
-
-    public single(long tireRadius, long containerWidth, long containerHeight,
+    private final long numTires;
+    public Physic(long tireRadius, long containerWidth, long containerHeight,
             long distBorder, long distTire) {
-        this(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000);
+        this(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000, 10);
     }
 
-    public single(long tireRadius, long containerWidth, long containerHeight,
-            long distBorder, long distTire, long maxIteration) {
+    public Physic(long tireRadius, long containerWidth, long containerHeight,
+            long distBorder, long distTire, long maxIteration, long numTires) {
         this.config = new SimulationConfig(tireRadius, containerWidth, containerHeight,
                 distBorder, distTire, maxIteration);
         this.tires = new ArrayList<>();
         this.engine = new PhysicsEngine(config, tires);
         this.isRunning = false;
-        this.scanner = new Scanner(System.in);
+        this.numTires = numTires;
     }
 
     @Override
     public void setup() {
         isRunning = true;
-        int numTires = 10;
         for (int i = 0; i < numTires; i++) {
             long randomX = (long) (Math.random() * (config.containerWidth - 2 * config.distBorder) + config.distBorder);
             long randomY = (long) (Math.random() * (config.containerHeight - 2 * config.distBorder) + config.distBorder);
             tires.add(new PhysicTire("Tire" + i, config.tireRadius, randomX, randomY));
         }
         System.out.println("Iniciando simulación con " + numTires + " ruedas");
-        System.out.println("Presiona Enter para continuar...");
-        scanner.nextLine();
     }
 
     @Override
@@ -230,42 +215,10 @@ public class single implements AbstractOptimization {
         engine.updateIteration();
         engine.simulatePhysics();
         
-        if (engine.iteration % 10 == 0) {
-            System.out.println("Iteración " + engine.iteration + 
-                             " - Ruedas válidas: " + engine.countValidTires());
-            for (PhysicTire tire : engine.getTires()) {
-                System.out.printf("Rueda %s: pos=(%d,%d) vel=(%d,%d)%n", 
-                    tire.getModel(), 
-                    tire.getX(), 
-                    tire.getY(),
-                    tire.getCurrentSpeedX(),
-                    tire.getCurrentSpeedY());
-            }
-        }
 
         if (engine.isFinished()) {
-            System.out.println("\n=== Resultado Final ===");
-            System.out.println("Total de ruedas: " + tires.size());
-            System.out.println("Ruedas válidas: " + engine.countValidTires());
-            System.out.println("====================");
-            System.out.println("Presiona Enter para continuar...");
-            scanner.nextLine();
             isRunning = false;
         }
     }
 
-    public static void main(String[] args) {
-        long tireRadius = 50;
-        long containerWidth = 1000;
-        long containerHeight = 1000;
-        long distBorder = 100;
-        long distTire = 20;
-        long maxIteration = 10000;
-
-        single simulation = new single(tireRadius, containerWidth, containerHeight,
-                distBorder, distTire, maxIteration);
-        
-        simulation.setup();
-        simulation.run();
-    }
 }
