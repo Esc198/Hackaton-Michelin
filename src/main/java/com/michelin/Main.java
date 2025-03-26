@@ -9,6 +9,7 @@ import com.michelin.Optimization.AbstractOptimization;
 import com.michelin.Optimization.HexagonalOptimization;
 import com.michelin.Optimization.MaxForceOptimization;
 import com.michelin.Optimization.SquareGridOptimization;
+import com.michelin.Optimization.single;
 import com.michelin.utils.Tire;
 
 import javafx.animation.AnimationTimer;
@@ -94,7 +95,8 @@ public class Main extends Application {
             List<Class<? extends AbstractOptimization>> optimizationClasses = Arrays.asList(
                     HexagonalOptimization.class,
                     SquareGridOptimization.class,
-                    MaxForceOptimization.class);
+                    MaxForceOptimization.class,
+                    single.class);
 
             optimizationDropdown.getItems().addAll(optimizationClasses);
             if (!optimizationClasses.isEmpty()) {

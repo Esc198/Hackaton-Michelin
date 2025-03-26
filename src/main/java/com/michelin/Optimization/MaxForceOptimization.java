@@ -31,7 +31,7 @@ public class MaxForceOptimization implements AbstractOptimization {
         System.out.println("Alto del contenedor: " + containerHeight);
         System.out.println("Distancia al borde: " + distBorder);
         System.out.println("Distancia entre ruedas: " + distTire);
-        
+
         this.config = new SimulationConfig(tireRadius, containerWidth, containerHeight,
                 distBorder, distTire, maxIteration);
         this.isRunning = new AtomicBoolean(false);
@@ -64,9 +64,9 @@ public class MaxForceOptimization implements AbstractOptimization {
         int bestInitialCount = runInitialOptimizations();
         int maxWheelCount = config.getMaxWheelCount();
         System.out.println("Iniciando simulaciones...");
-        
+
         // Inicializar mapa de mejores configuraciones
-        for (int i = 0; i < maxWheelCount-bestInitialCount; i++) {
+        for (int i = 0; i < maxWheelCount - bestInitialCount; i++) {
             bestValidTireCount.put(i, 0);
             bestConfiguration.put(i, new ArrayList<>());
         }
@@ -74,17 +74,17 @@ public class MaxForceOptimization implements AbstractOptimization {
         // Crear todas las simulaciones de una vez
         for (int i = bestInitialCount; i < maxWheelCount; i++) {
             final int simIndex = i - bestInitialCount;
-            final int targetTireCount = i + 1;  // Número de ruedas para esta simulación
-            
+            final int targetTireCount = i + 1; // Número de ruedas para esta simulación
+
             // Crear una lista nueva para cada simulación
             List<PhysicTire> simulationTires = new ArrayList<>();
             for (int j = 0; j < targetTireCount; j++) {
-                simulationTires.add(generateRandomTire(config.tireRadius, config.containerWidth, 
-                    config.containerHeight, config.distBorder, config.distTire));
+                simulationTires.add(generateRandomTire(config.tireRadius, config.containerWidth,
+                        config.containerHeight, config.distBorder, config.distTire));
             }
-            
+
             System.out.println("Simulación " + simIndex + " iniciada con " + simulationTires.size() + " ruedas");
-            
+
             // Crear y ejecutar la simulación en su propio hilo
             final List<PhysicTire> finalTires = new ArrayList<>(simulationTires);
             executor.submit(() -> {
@@ -165,6 +165,7 @@ public class MaxForceOptimization implements AbstractOptimization {
             return maxCount;
         }
     }
+
     @Override
     public List<Tire> getResult() {
         synchronized (bestConfiguration) {
@@ -174,22 +175,22 @@ public class MaxForceOptimization implements AbstractOptimization {
                             countValidTires(entry1.getValue()),
                             countValidTires(entry2.getValue())))
                     .orElse(null);
-    
+
             if (bestEntry != null) {
                 int currentBestIndex = bestEntry.getKey();
                 // Verificar si cambió la mejor simulación
                 if (currentBestIndex != currentSimulationIndex) {
-                    System.out.println("Cambio de mejor simulación: de " + currentSimulationIndex + 
-                                     " a " + currentBestIndex + " con " + 
-                                     countValidTires(bestEntry.getValue()) + " ruedas válidas");
+                    System.out.println("Cambio de mejor simulación: de " + currentSimulationIndex +
+                            " a " + currentBestIndex + " con " +
+                            countValidTires(bestEntry.getValue()) + " ruedas válidas");
                     currentSimulationIndex = currentBestIndex;
                 }
-                
+
                 return bestEntry.getValue().stream()
                         .map(tire -> (Tire) tire.clone())
                         .collect(Collectors.toList());
             }
-            
+
             return new ArrayList<>();
         }
     }
@@ -200,7 +201,6 @@ public class MaxForceOptimization implements AbstractOptimization {
                         config.containerHeight, config.distBorder, tires, config.distTire))
                 .count();
     }
-    
 
     @Override
     public boolean isFinished() {
@@ -264,7 +264,7 @@ public class MaxForceOptimization implements AbstractOptimization {
 
         final long REPULSION_FORCE = 1_000;
         final float DAMPING = 0.95f;
-        final float DT = 0.016f;
+        final float DT = 0.16f;
 
         SimulationConfig(long tireRadius, long containerWidth, long containerHeight,
                 long distBorder, long distTire, long maxIteration) {
@@ -318,51 +318,76 @@ public class MaxForceOptimization implements AbstractOptimization {
             long dx = tire1.getX() - tire2.getX();
             long dy = tire1.getY() - tire2.getY();
             double dist = Math.sqrt(dx * dx + dy * dy);
-            double minDist = (2.0 * config.tireRadius + config.distTire);
-            
-            if (dist > 0.0001 && dist < minDist) {
+            double minDist = (2.1 * config.tireRadius + config.distTire);
+
+            if (Math.abs(dx) < 0.0001)
+                dx = (long) ((Math.random() - 0.5) * 0.1);
+            if (Math.abs(dy) < 0.0001)
+                dy = (long) ((Math.random() - 0.5) * 0.1);
+
+            if (dist < minDist && dist > 0.0001) {
                 double magnitude = config.REPULSION_FORCE * Math.pow((minDist - dist) / minDist, 2);
-                
-                force.x += (long)((dx / dist) * magnitude);
-                force.y += (long)((dy / dist) * magnitude);
+                force.x += (long) ((dx / dist) * magnitude);
+                force.y += (long) ((dy / dist) * magnitude);
             }
         }
 
         private void addBorderForces(PhysicTire tire, Vector2D force) {
             long[] distances = {
-                    tire.getX() - config.distBorder - config.tireRadius, // left
-                    config.containerWidth - tire.getX() - config.distBorder - config.tireRadius, // right
-                    tire.getY() - config.distBorder - config.tireRadius, // top
-                    config.containerHeight - tire.getY() - config.distBorder - config.tireRadius // bottom
+                    tire.getX() - (config.distBorder + config.tireRadius),
+                    (config.containerWidth - config.distBorder - config.tireRadius) - tire.getX(),
+                    tire.getY() - (config.distBorder + config.tireRadius),
+                    (config.containerHeight - config.distBorder - config.tireRadius) - tire.getY()
             };
 
+            long borderInfluence = config.distBorder * 3;
+
             for (int i = 0; i < distances.length; i++) {
-                if (distances[i] < config.distBorder) {
-                    double borderForce = config.WALL_REPULSION_FORCE / Math.max(distances[i], 1);
-                    if (i < 2)
+                if (distances[i] < borderInfluence) {
+                    double borderForce = config.WALL_REPULSION_FORCE *
+                            Math.exp(-distances[i] / (double) borderInfluence);
+
+                    if (distances[i] <= 0) {
+                        borderForce *= 10.0;
+                    }
+
+                    if (i < 2) {
                         force.x += i == 0 ? borderForce : -borderForce;
-                    else
-                        force.y += i == 2 ? borderForce : -borderForce;
+                    } else {
+                        force.y += i == 2 ? -borderForce : borderForce;
+                    }
                 }
             }
+
+            
         }
 
         private void updateTirePhysics(PhysicTire tire, Vector2D force) {
-            double newSpeedX = tire.getCurrentSpeedX() * config.DAMPING + force.x * config.DT;
-            double newSpeedY = tire.getCurrentSpeedY() * config.DAMPING + force.y * config.DT;
-            
+            double newSpeedX = tire.getCurrentSpeedX() + force.x * config.DT;
+            double newSpeedY = tire.getCurrentSpeedY() + force.y * config.DT;
+
+            newSpeedX *= config.DAMPING;
+            newSpeedY *= config.DAMPING;
+
             double speed = Math.sqrt(newSpeedX * newSpeedX + newSpeedY * newSpeedY);
-            
-            newSpeedX = (newSpeedX / speed) * 1000;
-            newSpeedY = (newSpeedY / speed) * 1000;
-            
-            
-            tire.setCurrentSpeedX((long)newSpeedX);
-            tire.setCurrentSpeedY((long)newSpeedY);
-            
-            long newX = tire.getX() + (long)(tire.getCurrentSpeedX() * config.DT);
-            long newY = tire.getY() + (long)(tire.getCurrentSpeedY() * config.DT);
-            
+            double maxSpeed = 2000.0;
+
+            if (speed > maxSpeed) {
+                newSpeedX = (newSpeedX / speed) * maxSpeed;
+                newSpeedY = (newSpeedY / speed) * maxSpeed;
+            }
+
+            tire.setCurrentSpeedX((long) newSpeedX);
+            tire.setCurrentSpeedY((long) newSpeedY);
+
+            long newX = tire.getX() + (long) (newSpeedX * config.DT);
+            long newY = tire.getY() + (long) (newSpeedY * config.DT);
+
+            newX = Math.max(config.distBorder + config.tireRadius,
+                    Math.min(config.containerWidth - config.distBorder - config.tireRadius, newX));
+            newY = Math.max(config.distBorder + config.tireRadius,
+                    Math.min(config.containerHeight - config.distBorder - config.tireRadius, newY));
+
             tire.setX(newX);
             tire.setY(newY);
         }
