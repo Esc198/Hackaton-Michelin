@@ -18,9 +18,20 @@ public class MaxForceOptimization implements AbstractOptimization {
     private final AtomicBoolean isRunning;
     private final ExecutorService executor;
     private final Map<Integer, List<PhysicTire>> bestConfiguration = new HashMap<>();
+    private final Map<Integer, Integer> bestValidTireCount = new HashMap<>();
+    private int currentSimulationIndex = 0;
 
     public MaxForceOptimization(long tireRadius, long containerWidth, long containerHeight,
             long distBorder, long distTire, long maxIteration) {
+
+        System.out.println("Iniciando optimización con " + maxIteration + " iteraciones");
+        System.out.println("Configuración: ");
+        System.out.println("Radio de rueda: " + tireRadius);
+        System.out.println("Ancho del contenedor: " + containerWidth);
+        System.out.println("Alto del contenedor: " + containerHeight);
+        System.out.println("Distancia al borde: " + distBorder);
+        System.out.println("Distancia entre ruedas: " + distTire);
+        
         this.config = new SimulationConfig(tireRadius, containerWidth, containerHeight,
                 distBorder, distTire, maxIteration);
         this.isRunning = new AtomicBoolean(false);
@@ -52,14 +63,14 @@ public class MaxForceOptimization implements AbstractOptimization {
         // Inicializar con optimizaciones básicas
         int bestInitialCount = runInitialOptimizations();
         int maxWheelCount = config.getMaxWheelCount();
-
-        // Inicializar lista de resultados
-        for (int i = 0; i < maxWheelCount; i++) {
+        System.out.println("Iniciando simulaciones...");
+        
+        // Inicializar mapa de mejores configuraciones
+        for (int i = 0; i < maxWheelCount-bestInitialCount; i++) {
+            bestValidTireCount.put(i, 0);
             bestConfiguration.put(i, new ArrayList<>());
         }
 
-        System.out.println("Iniciando simulaciones...");
-        
         // Crear todas las simulaciones de una vez
         for (int i = bestInitialCount; i < maxWheelCount; i++) {
             final int simIndex = i - bestInitialCount;
@@ -110,13 +121,17 @@ public class MaxForceOptimization implements AbstractOptimization {
                 physicsEngine.simulatePhysics();
                 int currentValidTires = physicsEngine.countValidTires();
                 synchronized (bestConfiguration) {
-                    if (currentValidTires >= bestConfiguration.get(simIndex).size()) {
+                    if (currentValidTires >= bestValidTireCount.get(simIndex)) {
                         bestConfiguration.put(simIndex, physicsEngine.getTires().stream()
                                 .map(PhysicTire::clone)
                                 .collect(Collectors.toList()));
                     }
                 }
-
+                synchronized (bestValidTireCount) {
+                    if (currentValidTires >= bestValidTireCount.get(simIndex)) {
+                        bestValidTireCount.put(simIndex, currentValidTires);
+                    }
+                }
             }
 
         } catch (Exception e) {
@@ -126,7 +141,7 @@ public class MaxForceOptimization implements AbstractOptimization {
             synchronized (bestConfiguration) {
                 try {
                     System.out.println("Resultado simulación " + simIndex + " " + bestConfiguration.get(simIndex).size()
-                            + " ruedas");
+                            + " ruedas y " + bestValidTireCount.get(simIndex) + " ruedas válidas");
                 } catch (Exception e) {
                     System.out.println("No hay mejor configuración para la simulación " + simIndex);
                 }
@@ -150,28 +165,42 @@ public class MaxForceOptimization implements AbstractOptimization {
             return maxCount;
         }
     }
-
     @Override
     public List<Tire> getResult() {
         synchronized (bestConfiguration) {
-            // Find the configuration with the most valid tires and clone it
-            List<Tire> result = bestConfiguration.values().stream()
-                    .max((list1, list2) -> Integer.compare(
-                            (int) list1.stream()
-                                    .filter(t -> PhysicTire.isValidTire(t, config.containerWidth,
-                                            config.containerHeight, config.distBorder, list1, config.distTire))
-                                    .count(),
-                            (int) list2.stream()
-                                    .filter(t -> PhysicTire.isValidTire(t, config.containerWidth,
-                                            config.containerHeight, config.distBorder, list2, config.distTire))
-                                    .count()))
-                    .map(tires -> tires.stream()
-                            .map(tire -> (Tire) tire.clone())
-                            .collect(Collectors.toList()))
-                    .orElse(new ArrayList<>());
-            return result;
+            // Encontrar la configuración con más ruedas válidas
+            Map.Entry<Integer, List<PhysicTire>> bestEntry = bestConfiguration.entrySet().stream()
+                    .max((entry1, entry2) -> Integer.compare(
+                            countValidTires(entry1.getValue()),
+                            countValidTires(entry2.getValue())))
+                    .orElse(null);
+    
+            if (bestEntry != null) {
+                int currentBestIndex = bestEntry.getKey();
+                // Verificar si cambió la mejor simulación
+                if (currentBestIndex != currentSimulationIndex) {
+                    System.out.println("Cambio de mejor simulación: de " + currentSimulationIndex + 
+                                     " a " + currentBestIndex + " con " + 
+                                     countValidTires(bestEntry.getValue()) + " ruedas válidas");
+                    currentSimulationIndex = currentBestIndex;
+                }
+                
+                return bestEntry.getValue().stream()
+                        .map(tire -> (Tire) tire.clone())
+                        .collect(Collectors.toList());
+            }
+            
+            return new ArrayList<>();
         }
     }
+
+    private int countValidTires(List<PhysicTire> tires) {
+        return (int) tires.stream()
+                .filter(t -> PhysicTire.isValidTire(t, config.containerWidth,
+                        config.containerHeight, config.distBorder, tires, config.distTire))
+                .count();
+    }
+    
 
     @Override
     public boolean isFinished() {
@@ -225,7 +254,7 @@ public class MaxForceOptimization implements AbstractOptimization {
     }
 
     private static class SimulationConfig {
-        final long WALL_REPULSION_FORCE = 1_000_000;
+        final long WALL_REPULSION_FORCE = 10_000;
         final long tireRadius;
         final long containerWidth;
         final long containerHeight;
@@ -233,8 +262,8 @@ public class MaxForceOptimization implements AbstractOptimization {
         final long distTire;
         final long maxIteration;
 
-        final long REPULSION_FORCE = 100_000;
-        final float DAMPING = 0.98f;
+        final long REPULSION_FORCE = 1_000;
+        final float DAMPING = 0.95f;
         final float DT = 0.016f;
 
         SimulationConfig(long tireRadius, long containerWidth, long containerHeight,
@@ -289,10 +318,10 @@ public class MaxForceOptimization implements AbstractOptimization {
             long dx = tire1.getX() - tire2.getX();
             long dy = tire1.getY() - tire2.getY();
             double dist = Math.sqrt(dx * dx + dy * dy);
-            double minDist = (2.1 * config.tireRadius + config.distTire);
+            double minDist = (2.0 * config.tireRadius + config.distTire);
             
             if (dist > 0.0001 && dist < minDist) {
-                double magnitude = config.REPULSION_FORCE * (minDist - dist) / minDist;
+                double magnitude = config.REPULSION_FORCE * Math.pow((minDist - dist) / minDist, 2);
                 
                 force.x += (long)((dx / dist) * magnitude);
                 force.y += (long)((dy / dist) * magnitude);
@@ -321,6 +350,12 @@ public class MaxForceOptimization implements AbstractOptimization {
         private void updateTirePhysics(PhysicTire tire, Vector2D force) {
             double newSpeedX = tire.getCurrentSpeedX() * config.DAMPING + force.x * config.DT;
             double newSpeedY = tire.getCurrentSpeedY() * config.DAMPING + force.y * config.DT;
+            
+            double speed = Math.sqrt(newSpeedX * newSpeedX + newSpeedY * newSpeedY);
+            
+            newSpeedX = (newSpeedX / speed) * 1000;
+            newSpeedY = (newSpeedY / speed) * 1000;
+            
             
             tire.setCurrentSpeedX((long)newSpeedX);
             tire.setCurrentSpeedY((long)newSpeedY);
