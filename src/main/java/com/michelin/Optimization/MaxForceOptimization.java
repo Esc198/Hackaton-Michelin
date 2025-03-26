@@ -62,7 +62,7 @@ public class MaxForceOptimization implements AbstractOptimization {
 
         // Inicializar con optimizaciones básicas
         int bestInitialCount = runInitialOptimizations();
-        int maxWheelCount = config.getMaxWheelCount();
+        int maxWheelCount = bestInitialCount + 1;
         System.out.println("Iniciando simulaciones...");
 
         // Inicializar mapa de mejores configuraciones
@@ -121,11 +121,11 @@ public class MaxForceOptimization implements AbstractOptimization {
                 physicsEngine.simulatePhysics();
                 int currentValidTires = physicsEngine.countValidTires();
                 synchronized (bestConfiguration) {
-                    if (currentValidTires >= bestValidTireCount.get(simIndex)) {
+                   
                         bestConfiguration.put(simIndex, physicsEngine.getTires().stream()
                                 .map(PhysicTire::clone)
                                 .collect(Collectors.toList()));
-                    }
+                    
                 }
                 synchronized (bestValidTireCount) {
                     if (currentValidTires >= bestValidTireCount.get(simIndex)) {
@@ -133,10 +133,6 @@ public class MaxForceOptimization implements AbstractOptimization {
                     }
                 }
             }
-
-        } catch (Exception e) {
-            System.out.println("Error en la simulación " + simIndex + ": " + e.getMessage());
-        } finally {
             System.out.println("Simulación " + simIndex + " finalizada");
             synchronized (bestConfiguration) {
                 try {
@@ -146,7 +142,9 @@ public class MaxForceOptimization implements AbstractOptimization {
                     System.out.println("No hay mejor configuración para la simulación " + simIndex);
                 }
             }
-        }
+        } catch (Exception e) {
+            System.out.println("Error en la simulación " + simIndex + ": " + e.getMessage());
+        } 
 
     }
 
@@ -211,6 +209,19 @@ public class MaxForceOptimization implements AbstractOptimization {
         return false;
     }
 
+
+    @Override
+    public void run() {
+        if (isRunning.get()) {
+            System.out.println("Estado actual: " + isRunning.get());
+            System.out.println("Ejecutando simulación...");
+            System.out.println("Terminado: " + executor.isTerminated());
+            for ( var count : bestValidTireCount.entrySet()) {
+                System.out.println("Simulación " + count.getKey() + " tiene " + count.getValue() + " ruedas válidas");
+            }
+        }
+    }
+
     @Override
     public void stop() {
         try {
@@ -264,7 +275,7 @@ public class MaxForceOptimization implements AbstractOptimization {
 
         final long REPULSION_FORCE = 1_000;
         final float DAMPING = 0.95f;
-        final float DT = 0.16f;
+        final float DT = 0.016f;
 
         SimulationConfig(long tireRadius, long containerWidth, long containerHeight,
                 long distBorder, long distTire, long maxIteration) {
