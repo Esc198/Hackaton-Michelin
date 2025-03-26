@@ -6,16 +6,16 @@ import java.util.List;
 import com.michelin.utils.Tire;
 //Mario maricon
 public class HexagonalOptimization implements AbstractOptimization {
-    private final float radius;
-    private final float width;
-    private final float height;
-    private final float distBorder;
-    private final float distTire;
+    private long radius;
+    private long width;
+    private long height;
+    private long distBorder;
+    private long distTire;
 
 
     private List<Tire> tires;
     
-    public HexagonalOptimization(float radius, float width, float height, float distBorder, float distTire) {
+    public HexagonalOptimization(long radius, long  width, long height, long distBorder, long distTire) {
         this.radius = radius;
         this.width = width;
         this.height = height;
@@ -35,8 +35,8 @@ public class HexagonalOptimization implements AbstractOptimization {
         float effectiveHeight = height - 2 * (distBorder);
 
         // Calculate spacing between tire centers
-        float horizontalSpacing = 2 * radius + distTire;
-        double verticalSpacing = (double)(Math.sqrt(3) * (radius + distTire/2));
+        long horizontalSpacing = 2 * radius + distTire;
+        long verticalSpacing = Math.round(Math.sqrt(3) * (radius + distTire/2.0));
 
         // Calculate number of tires that can fit
         int tiresPerRow = (int)(effectiveWidth / horizontalSpacing);
@@ -44,17 +44,17 @@ public class HexagonalOptimization implements AbstractOptimization {
 
         // Calculate starting positions to center the pattern
         // Add radius to ensure minimum distance from walls
-        float startX = distBorder + radius;
-        float startY = distBorder + radius;
+        long startX = distBorder + radius;
+        long startY = distBorder + radius;
 
         // Create hexagonal arrangement
         for (int row = 0; row < numRows; row++) {
             // Offset every other row by half the horizontal spacing
-            float xOffset = (row % 2) * (horizontalSpacing / 2);
+            long xOffset = (long) ((row % 2) * (horizontalSpacing / 2));
             
             for (int col = 0; col < tiresPerRow; col++) {
-                float x = startX + col * horizontalSpacing + xOffset;
-                double y = startY + row * verticalSpacing;
+                long x = startX + col * horizontalSpacing + xOffset;
+                long y = startY + row * verticalSpacing;
                 
                 // Only add tire if it fits within the effective area
                 if (x + radius <= width - (distBorder ) && 

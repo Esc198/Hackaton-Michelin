@@ -6,14 +6,14 @@ import java.util.List;
 import com.michelin.utils.Tire;
 
 public class SquareGridOptimization implements AbstractOptimization {
-    private final float radius;
-    private final float width;
-    private final float height;
-    private final float distBorder;
-    private final float distTire;
+    private final long radius;
+    private final long width;
+    private final long height;
+    private final long distBorder;
+    private final long distTire;
     private List<Tire> tires;
 
-    public SquareGridOptimization(float radius, float width, float height, float distBorder, float distTire) {
+    public SquareGridOptimization(long radius, long width, long height, long distBorder, long distTire) {
         this.radius = radius;
         this.width = width;
         this.height = height;
@@ -29,25 +29,25 @@ public class SquareGridOptimization implements AbstractOptimization {
     @Override
     public void run() {
         // Calculate effective dimensions accounting for border distance
-        float effectiveWidth = width - 2 * (distBorder);
-        float effectiveHeight = height - 2 * ( distBorder);
+    	long effectiveWidth = width - 2 * (distBorder);
+    	long effectiveHeight = height - 2 * ( distBorder);
         
         // Calculate spacing between tire centers
-        float tireSpacing = 2 * radius + distTire / 2;
+    	long tireSpacing = 2 * radius + distTire / 2;
         
         // Calculate number of tires that can fit in each direction
-        int tiresPerRow = (int)(effectiveWidth / tireSpacing);
-        int tiresPerColumn = (int)(effectiveHeight / tireSpacing);
+    	long tiresPerRow = (effectiveWidth / tireSpacing);
+    	long tiresPerColumn = (effectiveHeight / tireSpacing);
         
         // Calculate starting position to center the grid
-        float startX = distBorder + radius;
-        float startY = distBorder + radius;
+    	long startX = distBorder + radius;
+    	long startY = distBorder + radius;
 
         // Place tires in a grid pattern
         for (int row = 0; row < tiresPerColumn; row++) {
             for (int col = 0; col < tiresPerRow; col++) {
-                float x = startX + col * tireSpacing;
-                float y = startY + row * tireSpacing;
+            	long x = startX + col * tireSpacing;
+            	long y = startY + row * tireSpacing;
                 
                 // Create new tire at calculated position
                 tires.add(new Tire("Michelin Pilot Sport", radius, x, y));
