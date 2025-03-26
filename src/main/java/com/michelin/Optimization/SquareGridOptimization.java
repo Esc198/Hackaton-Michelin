@@ -29,8 +29,8 @@ public class SquareGridOptimization implements AbstractOptimization {
     @Override
     public void run() {
         // Calculate effective dimensions accounting for border distance
-    	long effectiveWidth = width - 2 * (distBorder);
-    	long effectiveHeight = height - 2 * ( distBorder);
+    	long effectiveWidth = width - distBorder;
+    	long effectiveHeight = height - distBorder;
         
         // Calculate spacing between tire centers
     	long tireSpacing = 2 * radius + distTire;

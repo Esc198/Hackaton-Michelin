@@ -31,8 +31,8 @@ public class HexagonalOptimization implements AbstractOptimization {
     @Override
     public void run() {
         // Calculate effective dimensions accounting for border distance plus radius
-        float effectiveWidth = width - 2 * (distBorder );
-        float effectiveHeight = height - 2 * (distBorder);
+        float effectiveWidth = width - distBorder;
+        float effectiveHeight = height - distBorder;
 
         // Calculate spacing between tire centers
         long horizontalSpacing = 2 * radius + distTire;
