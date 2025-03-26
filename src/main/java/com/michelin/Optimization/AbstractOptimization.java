@@ -6,7 +6,7 @@ import com.michelin.utils.Tire;
 
 public interface AbstractOptimization {
     public void setup();
-    public void run();
+    public default void run(){};
     public List<Tire> getResult();
     public boolean isFinished();
     public default void stop(){};

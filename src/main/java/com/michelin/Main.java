@@ -354,7 +354,7 @@ public class Main extends Application {
 
                             for (Tire tire : currentTires) {
 
-                                if (isValidTire(tire, widthSlider.getValue(), heightSlider.getValue(), distBorderSlider.getValue(), currentTires, distTireSlider.getValue())) {
+                                if (Tire.isValidTire(tire, widthSlider.getValue(), heightSlider.getValue(), distBorderSlider.getValue(), currentTires, distTireSlider.getValue())) {
                                     validTires++;
                                 }
 
@@ -516,8 +516,7 @@ public class Main extends Application {
                 double textWidth = gc.getFont().getSize() / 2 * String.valueOf(i + 1).length();
                 double textHeight = gc.getFont().getSize() / 2;
                 gc.fillText(String.valueOf(i + 1), x - textWidth / 2, y + textHeight / 2);
-                coordinates.append("Rueda " + (i + 1) + ": (" + String.format("%.2f", x) + ", "
-                        + String.format("%.2f", y) + ")\n");
+                coordinates.append("Rueda ").append(i).append(1).append(": (").append(String.format("%.2f", x)).append(", ").append(String.format("%.2f", y)).append(")\n");
             }
 
         }
@@ -608,21 +607,4 @@ public class Main extends Application {
     }
 
 
-    public static boolean isValidTire(Tire tire, double width, double height, double distBorder, List<Tire> tires, double distTire) {
-        double x = tire.getPositionX();
-        double y = tire.getPositionY();
-        double r = tire.getRadius();
-        for (Tire otherTire : tires) {
-            if (otherTire == tire) {
-                continue;
-            }
-            double otherX = otherTire.getPositionX();
-            double otherY = otherTire.getPositionY();
-            double distance = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
-            if (distance < r + otherTire.getRadius() + distTire - 0.0001) {
-                return false;
-            }
-        }
-        return x - r >= distBorder && x + r <= width - distBorder && y - r >= distBorder && y + r <= height - distBorder;
-    }
 }

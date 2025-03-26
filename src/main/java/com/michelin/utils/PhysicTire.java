@@ -1,5 +1,7 @@
 package com.michelin.utils;
 
+import java.util.List;
+
 public class PhysicTire extends Tire{
     private final float maxForce;
     private final float maxSpeed;
@@ -58,5 +60,24 @@ public class PhysicTire extends Tire{
 
     public PhysicTire clone() {
         return new PhysicTire(maxAcceleration, maxDeceleration, maxForce, maxSpeed, super.getModel(), super.getRadius(), super.getPositionX(), super.getPositionY());
+    }
+    
+    
+    public static boolean isValidTire(PhysicTire tire, double width, double height, double distBorder, List<PhysicTire> tires, double distTire) {
+        double x = tire.getPositionX();
+        double y = tire.getPositionY();
+        double r = tire.getRadius();
+        for (PhysicTire otherTire : tires) {
+            if (otherTire == tire) {
+                continue;
+            }
+            double otherX = otherTire.getPositionX();
+            double otherY = otherTire.getPositionY();
+            double distance = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
+            if (distance < r + otherTire.getRadius() + distTire - 0.0001) {
+                return false;
+            }
+        }
+        return x - r >= distBorder && x + r <= width - distBorder && y - r >= distBorder && y + r <= height - distBorder;
     }
 }

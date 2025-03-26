@@ -1,5 +1,7 @@
 package com.michelin.utils;
 
+import java.util.List;
+
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
@@ -106,4 +108,24 @@ public class Tire {
     public static void resetTireCount() {
         tireCount = 0;
     }
+
+
+    public static boolean isValidTire(Tire tire, double width, double height, double distBorder, List<Tire> tires, double distTire) {
+        double x = tire.getPositionX();
+        double y = tire.getPositionY();
+        double r = tire.getRadius();
+        for (Tire otherTire : tires) {
+            if (otherTire == tire) {
+                continue;
+            }
+            double otherX = otherTire.getPositionX();
+            double otherY = otherTire.getPositionY();
+            double distance = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
+            if (distance < r + otherTire.getRadius() + distTire - 0.0001) {
+                return false;
+            }
+        }
+        return x - r >= distBorder && x + r <= width - distBorder && y - r >= distBorder && y + r <= height - distBorder;
+    }
+
 }
