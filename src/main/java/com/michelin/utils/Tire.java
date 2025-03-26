@@ -67,29 +67,31 @@ public class Tire {
 
     // Drawable method
     public void draw(GraphicsContext gc) {
-        float x = positionX / 1000.0f;
-        float y = positionY / 1000.0f;
-        float r = this.radius / 1000.0f;
+        // Convert from millimeters (stored as long) to pixels (float) by dividing by 1000
+        float x = positionX / 1000.0f; // Center X coordinate in pixels
+        float y = positionY / 1000.0f; // Center Y coordinate in pixels 
+        float r = this.radius / 1000.0f; // Radius in pixels
 
+        // Draw the main black tire circle
         gc.setFill(color);
-        gc.fillOval(x - r, y - r, r * 2, r * 2);
+        gc.fillOval(x - r, y - r, r * 2, r * 2); // Draw centered at (x,y)
 
-        // Add some details to make it look more like a tire
+        // Draw inner gray ring to create tire rim effect
         gc.setStroke(Color.GRAY);
         gc.setLineWidth(5);
-        gc.strokeOval(x - r + 5, y - r + 5, r * 2 - 10, r * 2 - 10);
+        gc.strokeOval(x - r + 5, y - r + 5, r * 2 - 10, r * 2 - 10); // Slightly smaller than main circle
 
-        // Add tread pattern
+        // Draw 8 evenly spaced tread marks around the tire
         gc.setLineWidth(2);
         gc.setStroke(Color.GRAY);
         for (int i = 0; i < 8; i++) {
-            double angle = i * Math.PI / 4;
-            double startX = positionX * 1000.0 + Math.cos(angle) * (r - 10);
-            double startY = positionY * 1000.0 + Math.sin(angle) * (r - 10);
-            double endX = positionX * 1000.0 + Math.cos(angle) * (r - 20);
-            double endY = positionY * 1000.0 + Math.sin(angle) * (r - 20);
+            double angle = i * Math.PI / 4; // Divide circle into 8 equal segments
+            // Calculate start/end points for each tread mark
+            double startX = x + Math.cos(angle) * (r - 10); // Outer point
+            double startY = y + Math.sin(angle) * (r - 10);
+            double endX = x + Math.cos(angle) * (r - 20); // Inner point  
+            double endY = y + Math.sin(angle) * (r - 20);
             gc.strokeLine(startX, startY, endX, endY);
-
         }
     }
 
