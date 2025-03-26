@@ -62,19 +62,19 @@ public class PhysicTire extends Tire{
         return new PhysicTire(maxAcceleration, maxDeceleration, maxForce, maxSpeed, super.getModel(), super.getRadius(), super.getPositionX(), super.getPositionY());
     }
     
-    
-    public static boolean isValidTire(PhysicTire tire, long width, long height, long distBorder, List<PhysicTire> tires, long distTire) {
+    public static boolean isValidTire(PhysicTire tire, long  width, long height, long distBorder, List<PhysicTire> tires, long distTire) {
         long x = tire.getPositionX();
         long y = tire.getPositionY();
         long r = tire.getRadius();
-        for (PhysicTire otherTire : tires) {
+        for (Tire otherTire : tires) {
             if (otherTire == tire) {
                 continue;
             }
             long otherX = otherTire.getPositionX();
             long otherY = otherTire.getPositionY();
-            long distance = (long) Math.sqrt((x - otherX) * (x - otherX) + (y - otherY) * (y - otherY));
-            if (distance < r + otherTire.getRadius() + distTire ) {
+            long distance = Math.round(Math.sqrt((x - otherX) * (x - otherX) + (y - otherY) * (y - otherY)));
+            if (distance < r + otherTire.getRadius() + distTire - 1) {
+                System.err.println("distancia" + distance + "r" + r + "otherTire.getRadius()" + otherTire.getRadius() + "distTire" + distTire);
                 return false;
             }
         }

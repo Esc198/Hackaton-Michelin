@@ -33,7 +33,7 @@ public class SquareGridOptimization implements AbstractOptimization {
     	long effectiveHeight = height - 2 * ( distBorder);
         
         // Calculate spacing between tire centers
-    	long tireSpacing = 2 * radius + distTire / 2;
+    	long tireSpacing = 2 * radius + distTire;
         
         // Calculate number of tires that can fit in each direction
     	long tiresPerRow = (effectiveWidth / tireSpacing);

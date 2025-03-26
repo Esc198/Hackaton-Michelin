@@ -48,20 +48,20 @@ public class Main extends Application {
     public void start(Stage primaryStage) {
         try {
             // Create a canvas
-            Canvas canvas = new Canvas(800000, 600000);
+            Canvas canvas = new Canvas(800, 600);
             GraphicsContext gc = canvas.getGraphicsContext2D();
 
-            long radius = 100000; // Internamente en base a mil
-            long width = 800000; // Internamente en base a mil
-            long height = 600000; // Internamente en base a mil
-            long distBorder = 100000; // Internamente en base a mil
-            long distTire = 100000; // Internamente en base a mil
+            long radius = 100; // Internamente en base a mil
+            long width = 800; // Internamente en base a mil
+            long height = 600; // Internamente en base a mil
+            long distBorder = 100; // Internamente en base a mil
+            long distTire = 100; // Internamente en base a mil
 
             // Draw container rectangle with light gray fill
             gc.setFill(Color.LIGHTGRAY);
-            gc.fillRect(0, 0, width / 1000, height / 1000);
+            gc.fillRect(0, 0, width, height);
             gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
-            gc.strokeRect(0, 0, width / 1000, height / 1000);
+            gc.strokeRect(0, 0, width , height );
 
             // Create control panel
             VBox controls = new VBox(10);
@@ -120,34 +120,34 @@ public class Main extends Application {
             optimizationDropdown.setButtonCell(optimizationDropdown.getCellFactory().call(null));
 
             // Modificar sliders y text fields para trabajar en base a mil
-            Slider radiusSlider = new Slider(20000, 200000, radius / 1000);
+            Slider radiusSlider = new Slider(0, 200, radius);
             radiusSlider.setShowTickLabels(true);
             radiusSlider.setShowTickMarks(true);
-            TextField radiusField = new TextField(String.valueOf(radius / 1000));
+            TextField radiusField = new TextField(String.valueOf(radius));
             radiusField.setMaxWidth(60);
 
-            Slider widthSlider = new Slider(400000, 1200000, width / 1000);
+            Slider widthSlider = new Slider(400, 1200, width);
             widthSlider.setShowTickLabels(true);
             widthSlider.setShowTickMarks(true);
-            TextField widthField = new TextField(String.valueOf(width / 1000));
+            TextField widthField = new TextField(String.valueOf(width));
             widthField.setMaxWidth(60);
 
-            Slider heightSlider = new Slider(300000, 900000, height / 1000);
+            Slider heightSlider = new Slider(300, 900, height);
             heightSlider.setShowTickLabels(true);
             heightSlider.setShowTickMarks(true);
-            TextField heightField = new TextField(String.valueOf(height / 1000));
+            TextField heightField = new TextField(String.valueOf(height));
             heightField.setMaxWidth(60);
 
-            Slider distBorderSlider = new Slider(0, 200000, distBorder / 1000);
+            Slider distBorderSlider = new Slider(0, 200, distBorder);
             distBorderSlider.setShowTickLabels(true);
             distBorderSlider.setShowTickMarks(true);
-            TextField distBorderField = new TextField(String.valueOf(distBorder / 1000));
+            TextField distBorderField = new TextField(String.valueOf(distBorder));
             distBorderField.setMaxWidth(60);
 
-            Slider distTireSlider = new Slider(0, 200000, distTire / 1000);
+            Slider distTireSlider = new Slider(0, 200, distTire);
             distTireSlider.setShowTickLabels(true);
             distTireSlider.setShowTickMarks(true);
-            TextField distTireField = new TextField(String.valueOf(distTire / 1000));
+            TextField distTireField = new TextField(String.valueOf(distTire));
             distTireField.setMaxWidth(60);
 
             // Sincronizar sliders con text fields en base a mil
@@ -353,8 +353,8 @@ public class Main extends Application {
 
                             for (Tire tire : currentTires) {
 
-                                if (Tire.isValidTire(tire, widthSlider.getValue(), heightSlider.getValue(),
-                                        distBorderSlider.getValue(), currentTires, distTireSlider.getValue())) {
+                                if (Tire.isValidTire(tire, (long) (widthSlider.getValue() * 1000), (long) (heightSlider.getValue() * 1000),
+                                        (long) (distBorderSlider.getValue() * 1000), currentTires, (long) (distTireSlider.getValue() * 1000))) {
                                     validTires++;
                                 }
 
@@ -416,7 +416,7 @@ public class Main extends Application {
             // Create the scene
             StackPane root = new StackPane(canvas, tabPane);
             StackPane.setAlignment(tabPane, Pos.CENTER_RIGHT);
-            Scene scene = new Scene(root, width / 1000, height / 1000);
+            Scene scene = new Scene(root, width , height );
 
             // Agregar un manejador para cuando se cierre la ventana
             primaryStage.setOnCloseRequest(event -> {
@@ -432,7 +432,7 @@ public class Main extends Application {
 
             // Dibujar los ejes después de mostrar la escena para asegurar que estén al
             // frente
-            drawAxes(gc, width / 1000, height / 1000);
+            drawAxes(gc, width, height );
         } catch (Exception e) {
             if (optimizationMethod != null) {
                 optimizationMethod.stop();

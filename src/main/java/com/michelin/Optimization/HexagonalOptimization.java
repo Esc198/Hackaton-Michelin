@@ -6,11 +6,11 @@ import java.util.List;
 import com.michelin.utils.Tire;
 //Mario maricon
 public class HexagonalOptimization implements AbstractOptimization {
-    private long radius;
-    private long width;
-    private long height;
-    private long distBorder;
-    private long distTire;
+    private final long radius;
+    private final long width;
+    private final long height;
+    private final long distBorder;
+    private final long distTire;
 
 
     private List<Tire> tires;

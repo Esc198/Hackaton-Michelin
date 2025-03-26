@@ -114,18 +114,19 @@ public class Tire {
     }
 
 
-    public static boolean isValidTire(Tire tire, double width, double height, double distBorder, List<Tire> tires, double distTire) {
-        double x = tire.getPositionX();
-        double y = tire.getPositionY();
-        double r = tire.getRadius();
+    public static boolean isValidTire(Tire tire, long  width, long height, long distBorder, List<Tire> tires, long distTire) {
+        long x = tire.getPositionX();
+        long y = tire.getPositionY();
+        long r = tire.getRadius();
         for (Tire otherTire : tires) {
             if (otherTire == tire) {
                 continue;
             }
-            double otherX = otherTire.getPositionX();
-            double otherY = otherTire.getPositionY();
-            double distance = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
-            if (distance < r + otherTire.getRadius() + distTire - 0.0001) {
+            long otherX = otherTire.getPositionX();
+            long otherY = otherTire.getPositionY();
+            long distance = (long) Math.sqrt((x - otherX) * (x - otherX) + (y - otherY) * (y - otherY));
+            if (distance < r + otherTire.getRadius() + distTire - 1) {
+                System.err.println("distancia" + distance + "r" + r + "otherTire.getRadius()" + otherTire.getRadius() + "distTire" + distTire);
                 return false;
             }
         }
