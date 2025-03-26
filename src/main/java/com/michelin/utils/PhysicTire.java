@@ -3,19 +3,19 @@ package com.michelin.utils;
 import java.util.List;
 
 public class PhysicTire extends Tire{
-    private final float maxForce;
-    private final float maxSpeed;
-    private final float maxAcceleration;
-    private final float maxDeceleration;
+    private final long maxForce;
+    private final long maxSpeed;
+    private final long maxAcceleration;
+    private final long maxDeceleration;
 
-    private float currentForceX;
-    private float currentForceY;
-    private float currentSpeedX;
-    private float currentSpeedY;
-    private float currentAccelerationX;
-    private float currentAccelerationY;
+    private long currentForceX;
+    private long currentForceY;
+    private long currentSpeedX;
+    private long currentSpeedY;
+    private long currentAccelerationX;
+    private long currentAccelerationY;
 
-    public PhysicTire(float maxAcceleration, float maxDeceleration, float maxForce, float maxSpeed, String model, double radius, double x, double y) {
+    public PhysicTire(long maxAcceleration, long maxDeceleration, long maxForce, long maxSpeed, String model, long radius, long x, long y) {
         super(model, radius, x, y);
         this.maxAcceleration = maxAcceleration;
         this.maxDeceleration = maxDeceleration;
@@ -24,37 +24,37 @@ public class PhysicTire extends Tire{
     }
     
     // Getters y setters para las variables de física
-    public float getCurrentForceX() { return currentForceX; }
-    public float getCurrentForceY() { return currentForceY; }
-    public float getCurrentSpeedX() { return currentSpeedX; }
-    public float getCurrentSpeedY() { return currentSpeedY; }
-    public float getCurrentAccelerationX() { return currentAccelerationX; }
-    public float getCurrentAccelerationY() { return currentAccelerationY; }
-    public float getMaxForce() { return maxForce; }
-    public float getMaxSpeed() { return maxSpeed; }
-    public float getMaxAcceleration() { return maxAcceleration; }
-    public float getMaxDeceleration() { return maxDeceleration; }
+    public long getCurrentForceX() { return currentForceX; }
+    public long getCurrentForceY() { return currentForceY; }
+    public long getCurrentSpeedX() { return currentSpeedX; }
+    public long getCurrentSpeedY() { return currentSpeedY; }
+    public long getCurrentAccelerationX() { return currentAccelerationX; }
+    public long getCurrentAccelerationY() { return currentAccelerationY; }
+    public long getMaxForce() { return maxForce; }
+    public long getMaxSpeed() { return maxSpeed; }
+    public long getMaxAcceleration() { return maxAcceleration; }
+    public long getMaxDeceleration() { return maxDeceleration; }
     
-    public void setCurrentForceX(float force) { this.currentForceX = force; }
-    public void setCurrentForceY(float force) { this.currentForceY = force; }
-    public void setCurrentSpeedX(float speed) { this.currentSpeedX = speed; }
-    public void setCurrentSpeedY(float speed) { this.currentSpeedY = speed; }
-    public void setCurrentAccelerationX(float acceleration) { this.currentAccelerationX = acceleration; }
-    public void setCurrentAccelerationY(float acceleration) { this.currentAccelerationY = acceleration; }
+    public void setCurrentForceX(long force) { this.currentForceX = force; }
+    public void setCurrentForceY(long force) { this.currentForceY = force; }
+    public void setCurrentSpeedX(long speed) { this.currentSpeedX = speed; }
+    public void setCurrentSpeedY(long speed) { this.currentSpeedY = speed; }
+    public void setCurrentAccelerationX(long acceleration) { this.currentAccelerationX = acceleration; }
+    public void setCurrentAccelerationY(long acceleration) { this.currentAccelerationY = acceleration; }
 
-    public float getX() {
+    public long getX() {
         return super.getPositionX();
     }
 
-    public float getY() {
+    public long getY() {
         return super.getPositionY();
     }
 
-    public void setX(float f) {
+    public void setX(long f) {
         super.setPositionX(f);
     }
 
-    public void setY(float f) {
+    public void setY(long f) {
         super.setPositionY(f);
     }
 
@@ -63,18 +63,18 @@ public class PhysicTire extends Tire{
     }
     
     
-    public static boolean isValidTire(PhysicTire tire, double width, double height, double distBorder, List<PhysicTire> tires, double distTire) {
-        double x = tire.getPositionX();
-        double y = tire.getPositionY();
-        double r = tire.getRadius();
+    public static boolean isValidTire(PhysicTire tire, long width, long height, long distBorder, List<PhysicTire> tires, long distTire) {
+        long x = tire.getPositionX();
+        long y = tire.getPositionY();
+        long r = tire.getRadius();
         for (PhysicTire otherTire : tires) {
             if (otherTire == tire) {
                 continue;
             }
-            double otherX = otherTire.getPositionX();
-            double otherY = otherTire.getPositionY();
-            double distance = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
-            if (distance < r + otherTire.getRadius() + distTire - 0.0001) {
+            long otherX = otherTire.getPositionX();
+            long otherY = otherTire.getPositionY();
+            long distance = (long) Math.sqrt((x - otherX) * (x - otherX) + (y - otherY) * (y - otherY));
+            if (distance < r + otherTire.getRadius() + distTire ) {
                 return false;
             }
         }
