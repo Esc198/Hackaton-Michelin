@@ -8,7 +8,6 @@ import java.util.List;
 import com.michelin.Optimization.AbstractOptimization;
 import com.michelin.Optimization.HexagonalOptimization;
 import com.michelin.Optimization.MaxForceOptimization;
-import com.michelin.Optimization.SinglePhisicOptimization;
 import com.michelin.Optimization.SquareGridOptimization;
 import com.michelin.utils.Tire;
 
@@ -95,8 +94,8 @@ public class Main extends Application {
             List<Class<? extends AbstractOptimization>> optimizationClasses = Arrays.asList(
                     HexagonalOptimization.class,
                     SquareGridOptimization.class,
-                    MaxForceOptimization.class,
-                    SinglePhisicOptimization.class);
+                    MaxForceOptimization.class
+                    );
 
             optimizationDropdown.getItems().addAll(optimizationClasses);
             if (!optimizationClasses.isEmpty()) {

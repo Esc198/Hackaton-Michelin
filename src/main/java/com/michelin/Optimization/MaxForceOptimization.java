@@ -19,8 +19,8 @@
         private final ExecutorService executor;
         private final Map<Integer, List<PhysicTire>> bestConfiguration = new HashMap<>();
 
-        public MaxForceOptimization(float tireRadius, float containerWidth, float containerHeight,
-                float distBorder, float distTire, float maxIteration) {
+        public MaxForceOptimization(long  tireRadius, long containerWidth, long containerHeight,
+                long distBorder, long distTire, long maxIteration) {
             this.config = new SimulationConfig(tireRadius, containerWidth, containerHeight,
                     distBorder, distTire, maxIteration);
             this.isRunning = new AtomicBoolean(false);
@@ -31,14 +31,14 @@
 
         }
 
-        public MaxForceOptimization(float tireRadius, float containerWidth, float containerHeight,
-                float distBorder, float distTire) {
+        public MaxForceOptimization(long tireRadius, long containerWidth, long containerHeight,
+                long distBorder, long distTire) {
             this(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000); // Generalmente 10_000_000
         }
-        public static PhysicTire generateRandomTire(float tireRadius, float containerWidth, float containerHeight, float distBorder, float distTire) {
-            float randomX = (float) (Math.random() * (containerWidth - 2 * distBorder)
+        public static PhysicTire generateRandomTire(long tireRadius, long containerWidth, long containerHeight, long distBorder, long distTire) {
+            long randomX = (long) (Math.random() * (containerWidth - 2 * distBorder)
                     + distBorder);
-            float randomY = (float) (Math.random() * (containerHeight - 2 * distBorder)
+            long randomY = (long) (Math.random() * (containerHeight - 2 * distBorder)
                     + distBorder);
             return new PhysicTire(100, 100, 100, 100, "Random", tireRadius, randomX, randomY);
         }
@@ -216,21 +216,21 @@
 
 
         private static class SimulationConfig {
-            final float WALL_REPULSION_FORCE = 1000000000;
-            final float tireRadius;
-            final float containerWidth;
-            final float containerHeight;
-            final float distBorder;
-            final float distTire;
-            final float maxIteration;
+            final long  WALL_REPULSION_FORCE = 1000000000;
+            final long tireRadius;
+            final long containerWidth;
+            final long containerHeight;
+            final long distBorder;
+            final long distTire;
+            final long maxIteration;
 
-            final float REPULSION_FORCE = 1000f;
+            final long  REPULSION_FORCE = 1000;
             final float DAMPING = 0.98f;
             final float DT = 0.016f;
             final float MIN_SPEED = 0.00001f;
 
-            SimulationConfig(float tireRadius, float containerWidth, float containerHeight,
-                    float distBorder, float distTire, float maxIteration) {
+            SimulationConfig(long tireRadius, long containerWidth, long containerHeight,
+                    long distBorder, long distTire, long maxIteration) {
                 this.tireRadius = tireRadius;
                 this.containerWidth = containerWidth;
                 this.containerHeight = containerHeight;
@@ -312,8 +312,8 @@
 
             private void updateTirePhysics(PhysicTire tire, Vector2D force) {
                 // Actualizar velocidad
-                tire.setCurrentSpeedX(tire.getCurrentSpeedX() * config.DAMPING + force.x * config.DT);
-                tire.setCurrentSpeedY(tire.getCurrentSpeedY() * config.DAMPING + force.y * config.DT);
+                tire.setCurrentSpeedX((long) (tire.getCurrentSpeedX() * config.DAMPING + force.x * config.DT));
+                tire.setCurrentSpeedY((long) (tire.getCurrentSpeedY() * config.DAMPING + force.y * config.DT));
 
                 // Aplicar velocidad mínima
                 if (Math.abs(tire.getCurrentSpeedX()) < config.MIN_SPEED)
@@ -322,15 +322,10 @@
                     tire.setCurrentSpeedY(0);
 
                 // Actualizar posición
-                float newX = tire.getX() + tire.getCurrentSpeedX() * config.DT;
-                float newY = tire.getY() + tire.getCurrentSpeedY() * config.DT;
+                long newX = (long) (tire.getX() + tire.getCurrentSpeedX() * config.DT);
+                long newY = (long) (tire.getY() + tire.getCurrentSpeedY() * config.DT);
 
-                // Mantener dentro de límites
-                newX = clamp(newX, config.distBorder + config.tireRadius,
-                        config.containerWidth - config.distBorder - config.tireRadius);
-                newY = clamp(newY, config.distBorder + config.tireRadius,
-                        config.containerHeight - config.distBorder - config.tireRadius);
-
+              
                 tire.setX(newX);
                 tire.setY(newY);
             }
@@ -360,7 +355,7 @@
         }
 
         private static class Vector2D {
-            float x, y;
+            long x, y;
         }
 
 }
