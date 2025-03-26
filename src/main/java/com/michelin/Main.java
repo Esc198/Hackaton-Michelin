@@ -249,10 +249,12 @@ public class Main extends Application {
                     for (int i = 0; i < currentTires.size(); i++) {
                         Tire tire = currentTires.get(i);
                         tire.draw(gc);
-                        drawTireNumber(gc, tire, i + 1);
+                        drawNumber(gc, currentTires, (int) canvas.getWidth(), (int) canvas.getHeight(), (int) distBorderSlider.getValue());
                     }
                 }
             });
+
+
 
             // Add listeners to update container size in real-time
             widthSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -485,7 +487,7 @@ public class Main extends Application {
     }
 
     // Nueva función para dibujar números en las ruedas
-    public static void drawNumber(GraphicsContext gc, List<Tire> tires, int width, int height, int distBorder) {
+    private static void drawNumber(GraphicsContext gc, List<Tire> tires, int width, int height, int distBorder) {
         if (tires == null || tires.isEmpty()) {
             return;
         }
@@ -498,19 +500,19 @@ public class Main extends Application {
         StringBuilder coordinates = new StringBuilder();
         for (int i = 0; i < tires.size(); i++) {
             Tire tire = tires.get(i);
-            double x = tire.getPositionX();
-            double y = tire.getPositionY();
-            double r = tire.getRadius();
+            double x = tire.getPositionX() / 1000.0;
+            double y = tire.getPositionY() / 1000.0;
+            double r = tire.getRadius() / 1000.0;
 
             // Verificar si la rueda está dentro de los límites
-            if (x - r >= distBorder * 1000 &&
-                    x + r <= width * 1000 - distBorder * 1000 &&
-                    y - r >= distBorder * 1000 &&
-                    y + r <= height * 1000 - distBorder * 1000) {
+            if (x - r >= distBorder &&
+                    x + r <= width - distBorder &&
+                    y - r >= distBorder &&
+                    y + r <= height - distBorder) {
                 gc.setFill(Color.WHITE);
                 gc.setStroke(Color.BLACK);
                 gc.setLineWidth(1);
-                gc.setFont(Font.font("Algerian", FontWeight.BOLD, r / 1000 * 10));
+                gc.setFont(Font.font("Algerian", FontWeight.BOLD, r * 10));
                 String number = String.valueOf(i + 1);
 
                 // Ajustar el cálculo de las posiciones del texto
@@ -521,8 +523,8 @@ public class Main extends Application {
 
                 // Agregar coordenadas al texto
                 coordinates.append("Rueda ").append(i + 1).append(": (")
-                        .append(String.format("%.2f", x / 1000)).append(", ")
-                        .append(String.format("%.2f", y / 1000)).append(")\n");
+                        .append(String.format("%.2f", x)).append(", ")
+                        .append(String.format("%.2f", y)).append(")\n");
             }
         }
 
@@ -588,20 +590,7 @@ public class Main extends Application {
                                                                                                       // derecha
     }
 
-    // Nueva función para dibujar el número de un neumático
-    private void drawTireNumber(GraphicsContext gc, Tire tire, int number) {
-        double x = tire.getPositionX();
-        double y = tire.getPositionY();
-        double r = tire.getRadius();
 
-        gc.setFill(Color.WHITE);
-        gc.setStroke(Color.BLACK);
-        gc.setLineWidth(1);
-        gc.setFont(Font.font("Algerian", FontWeight.BOLD, r / 2)); // Tamaño de fuente dinámico
-        double textWidth = gc.getFont().getSize() / 2 * String.valueOf(number).length();
-        double textHeight = gc.getFont().getSize() / 2;
-        gc.fillText(String.valueOf(number), x - textWidth / 2, y + textHeight / 2);
-    }
 
     public static void main(String[] args) {
         try {
