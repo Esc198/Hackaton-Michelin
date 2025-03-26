@@ -619,7 +619,7 @@ public class Main extends Application {
             double otherX = otherTire.getPositionX();
             double otherY = otherTire.getPositionY();
             double distance = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
-            if (distance + 0.00001f < r + r + distTire) {
+            if (distance < r + otherTire.getRadius() + distTire - 0.0001) {
                 return false;
             }
         }
