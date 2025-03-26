@@ -48,14 +48,14 @@ public class Main extends Application {
     public void start(Stage primaryStage) {
         try {
             // Create a canvas
-            Canvas canvas = new Canvas(800, 600);
+            Canvas canvas = new Canvas(800000, 600000);
             GraphicsContext gc = canvas.getGraphicsContext2D();
 
-            long radius = 100; // Internamente en base a mil
-            long width = 800; // Internamente en base a mil
-            long height = 600; // Internamente en base a mil
-            long distBorder = 100; // Internamente en base a mil
-            long distTire = 100; // Internamente en base a mil
+            long radius = 100000; // Internamente en base a mil
+            long width = 800000; // Internamente en base a mil
+            long height = 600000; // Internamente en base a mil
+            long distBorder = 100000; // Internamente en base a mil
+            long distTire = 100000; // Internamente en base a mil
 
             // Draw container rectangle with light gray fill
             gc.setFill(Color.LIGHTGRAY);
