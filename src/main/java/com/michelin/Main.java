@@ -60,7 +60,7 @@ public class Main extends Application {
             gc.setFill(Color.LIGHTGRAY);
             gc.fillRect(0, 0, width, height);
             gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
-            gc.strokeRect(0, 0, width , height );
+            gc.strokeRect(0, 0, width, height);
 
             // Create control panel
             VBox controls = new VBox(10);
@@ -94,8 +94,7 @@ public class Main extends Application {
             List<Class<? extends AbstractOptimization>> optimizationClasses = Arrays.asList(
                     HexagonalOptimization.class,
                     SquareGridOptimization.class,
-                    MaxForceOptimization.class
-                    );
+                    MaxForceOptimization.class);
 
             optimizationDropdown.getItems().addAll(optimizationClasses);
             if (!optimizationClasses.isEmpty()) {
@@ -352,8 +351,10 @@ public class Main extends Application {
 
                             for (Tire tire : currentTires) {
 
-                                if (Tire.isValidTire(tire, (long) (widthSlider.getValue() * 1000), (long) (heightSlider.getValue() * 1000),
-                                        (long) (distBorderSlider.getValue() * 1000), currentTires, (long) (distTireSlider.getValue() * 1000))) {
+                                if (Tire.isValidTire(tire, (long) (widthSlider.getValue() * 1000),
+                                        (long) (heightSlider.getValue() * 1000),
+                                        (long) (distBorderSlider.getValue() * 1000), currentTires,
+                                        (long) (distTireSlider.getValue() * 1000))) {
                                     validTires++;
                                 }
 
@@ -415,7 +416,7 @@ public class Main extends Application {
             // Create the scene
             StackPane root = new StackPane(canvas, tabPane);
             StackPane.setAlignment(tabPane, Pos.CENTER_RIGHT);
-            Scene scene = new Scene(root, width , height );
+            Scene scene = new Scene(root, width, height);
 
             // Agregar un manejador para cuando se cierre la ventana
             primaryStage.setOnCloseRequest(event -> {
@@ -431,7 +432,7 @@ public class Main extends Application {
 
             // Dibujar los ejes después de mostrar la escena para asegurar que estén al
             // frente
-            drawAxes(gc, width, height );
+            drawAxes(gc, width, height);
         } catch (Exception e) {
             if (optimizationMethod != null) {
                 optimizationMethod.stop();
@@ -489,38 +490,43 @@ public class Main extends Application {
             return;
         }
 
-        // Ordenar las ruedas por posición X y luego por posición Y
+        // Ordenar las ruedas por posición Y y luego por posición X
         tires.sort(Comparator.comparingDouble(Tire::getPositionY)
                 .thenComparingDouble(Tire::getPositionX));
 
         // Asignar números a las ruedas en orden de preferencia
-
         StringBuilder coordinates = new StringBuilder();
         for (int i = 0; i < tires.size(); i++) {
             Tire tire = tires.get(i);
-            // Verificar la posición de la rueda
             double x = tire.getPositionX();
             double y = tire.getPositionY();
             double r = tire.getRadius();
 
-            if (x - r >= distBorder &&
-                    x + r <= width - distBorder &&
-                    y - r >= distBorder &&
-                    y + r <= height - distBorder) {
-                tire.draw(gc);
+            // Verificar si la rueda está dentro de los límites
+            if (x - r >= distBorder * 1000 &&
+                    x + r <= width * 1000 - distBorder * 1000 &&
+                    y - r >= distBorder * 1000 &&
+                    y + r <= height * 1000 - distBorder * 1000) {
                 gc.setFill(Color.WHITE);
                 gc.setStroke(Color.BLACK);
                 gc.setLineWidth(1);
-                gc.setFont(Font.font("Algerian", FontWeight.BOLD, r / 2)); // Tamaño de fuente dinámico
-                double textWidth = gc.getFont().getSize() / 2 * String.valueOf(i + 1).length();
-                double textHeight = gc.getFont().getSize() / 2;
-                gc.fillText(String.valueOf(i + 1), x - textWidth / 2, y + textHeight / 2);
-                coordinates.append("Rueda ").append(i).append(1).append(": (").append(String.format("%.2f", x))
-                        .append(", ").append(String.format("%.2f", y)).append(")\n");
-            }
+                gc.setFont(Font.font("Algerian", FontWeight.BOLD, r / 1000 * 10));
+                String number = String.valueOf(i + 1);
 
+                // Ajustar el cálculo de las posiciones del texto
+                double textWidth = gc.getFont().getSize() * number.length() / 4.0;
+                double textHeight = gc.getFont().getSize() / 4.0;
+                gc.fillText(number, x - textWidth, y + textHeight);
+                gc.strokeText(number, x - textWidth, y + textHeight);
+
+                // Agregar coordenadas al texto
+                coordinates.append("Rueda ").append(i + 1).append(": (")
+                        .append(String.format("%.2f", x / 1000)).append(", ")
+                        .append(String.format("%.2f", y / 1000)).append(")\n");
+            }
         }
-        // Establecer el texto de la lista de coordenadas
+
+        // Actualizar la lista de coordenadas
         coordinatesListView.getItems().setAll(coordinates.toString().split("\n"));
     }
 
