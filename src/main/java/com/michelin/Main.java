@@ -101,8 +101,7 @@ public class Main extends Application {
             List<Class<? extends AbstractOptimization>> optimizationClasses = Arrays.asList(
                     HexagonalOptimization.class,
                     SquareGridOptimization.class,
-                    MaxForceOptimization.class,
-                    Physic.class);
+                    MaxForceOptimization.class);
 
             optimizationDropdown.getItems().addAll(optimizationClasses);
             if (!optimizationClasses.isEmpty()) {

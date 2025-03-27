@@ -97,9 +97,9 @@ public class Physic implements AbstractOptimization {
     private void addBorderForces(PhysicTire tire, Vector2D force) {
         long[] distances = {
             tire.getX() - (distBorder + tireRadius), // Left border
-            (containerWidth - 2 * distBorder - tireRadius) - tire.getX(), // Right border  
+            (containerWidth - distBorder - tireRadius) - tire.getX(), // Right border  
             tire.getY() - (distBorder + tireRadius), // Top border
-            (containerHeight - 2 * distBorder - tireRadius) - tire.getY() // Bottom border
+            (containerHeight - distBorder - tireRadius) - tire.getY() // Bottom border
         };
         
         

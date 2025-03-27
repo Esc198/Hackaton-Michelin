@@ -21,13 +21,20 @@ public class MaxForceOptimization implements AbstractOptimization {
 
     private final ConcurrentHashMap<Integer, List<Tire>> bestConfiguration;
     private final ConcurrentHashMap<Integer, Integer> ValidTires;
-    private ExecutorService executor;
+    private ExecutorService executor = null;
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
     private final AtomicInteger remainingThreads = new AtomicInteger(0);
 
+    
     private int getMaxWheelCount() {
-        return (int) ((containerWidth - 2 * distBorder) * (containerHeight - 2 * distBorder) /
-                (Math.PI * Math.pow(tireRadius * 2 + distTire, 2)));
+        // Calculate available area by subtracting border area
+        double availableArea = (containerWidth - 2*distBorder) * (containerHeight - 2*distBorder);
+        
+        // Calculate area of one tire including spacing (as a circle)
+        double tireArea = Math.PI * Math.pow(tireRadius + distTire/2, 2);
+        
+        // Divide total area by area of one tire to get theoretical maximum
+        return (int) Math.round(availableArea / tireArea);
     }
 
     public MaxForceOptimization(long tireRadius, long containerWidth, long containerHeight, long distBorder,
@@ -43,25 +50,27 @@ public class MaxForceOptimization implements AbstractOptimization {
     }
 
     private int bestBasicMethod() {
-        AbstractOptimization genericOptimization = new SquareGridOptimization(tireRadius, containerWidth,
+        // Try square grid optimization
+        AbstractOptimization squareOptimization = new SquareGridOptimization(tireRadius, containerWidth,
                 containerHeight, distBorder, distTire);
-        genericOptimization.setup();
-        genericOptimization.run();
-        final List<Tire> result = genericOptimization.getResult();
-        int squareValidTires = (int) result.stream()
-                .filter(tire -> Tire.isValidTire(tire, containerWidth, containerHeight, distBorder, result, distTire))
+        squareOptimization.setup();
+        squareOptimization.run();
+        final List<Tire> squareResult = squareOptimization.getResult();
+        int squareValidTires = (int) squareResult.stream()
+                .filter(tire -> Tire.isValidTire(tire, containerWidth, containerHeight, distBorder, squareResult, distTire))
                 .count();
+        squareOptimization.stop();
 
-        genericOptimization.stop();
-        genericOptimization = new HexagonalOptimization(tireRadius, containerWidth, containerHeight, distBorder,
+        // Try hexagonal optimization
+        AbstractOptimization hexOptimization = new HexagonalOptimization(tireRadius, containerWidth, containerHeight, distBorder,
                 distTire);
-        genericOptimization.setup();
-        genericOptimization.run();
-        final List<Tire> result2 = genericOptimization.getResult();
-        int hexagonalValidTires = (int) result2.stream()
-                .filter(tire -> Tire.isValidTire(tire, containerWidth, containerHeight, distBorder, result2, distTire))
+        hexOptimization.setup();
+        hexOptimization.run();
+        final List<Tire> hexResult = hexOptimization.getResult();
+        int hexagonalValidTires = (int) hexResult.stream()
+                .filter(tire -> Tire.isValidTire(tire, containerWidth, containerHeight, distBorder, hexResult, distTire))
                 .count();
-        genericOptimization.stop();
+        hexOptimization.stop();
 
         return Math.max(squareValidTires, hexagonalValidTires);
     }
@@ -80,12 +89,11 @@ public class MaxForceOptimization implements AbstractOptimization {
         this.ValidTires.clear();
 
         int minWheelCount = bestBasicMethod();
-        int maxWheelCount = getMaxWheelCount() > minWheelCount ? getMaxWheelCount() : minWheelCount;
-
+        int maxWheelCount = getMaxWheelCount();
         System.out.println("Min wheel count: " + minWheelCount);
         System.out.println("Max wheel count: " + maxWheelCount);
         for (int i = minWheelCount; i <= maxWheelCount; i++) {
-            remainingThreads.addAndGet(1);
+            remainingThreads.incrementAndGet();
             final int threadIndex = i - minWheelCount;
 
             this.bestConfiguration.put(threadIndex, new ArrayList<>());
@@ -113,6 +121,7 @@ public class MaxForceOptimization implements AbstractOptimization {
                     System.out.println("Thread " + threadIndex + " finished with error: " + e.getMessage());
                 } finally {
                     remainingThreads.decrementAndGet();
+                    System.out.println("Remaining threads: " + remainingThreads.get());
                 }
 
             });
