@@ -79,8 +79,8 @@ public class Physic implements AbstractOptimization {
             double dist = Math.sqrt(dx * dx + dy * dy);
             double minDist =  1.1 * (2 * config.tireRadius + config.distTire);
             
-            if (Math.abs(dx) < 1) dx = (long)((Math.random() - 0.5) * 0.1);
-            if (Math.abs(dy) < 1) dy = (long)((Math.random() - 0.5) * 0.1);
+            if (Math.abs(dx) < 1) dx = (long)((Math.random() - 0.5) * 10);
+            if (Math.abs(dy) < 1) dy = (long)((Math.random() - 0.5) * 10);
             
             if (dist < minDist && dist > 0.0001) {
                 double magnitude = config.REPULSION_FORCE * Math.pow((minDist - dist) / minDist, 2);
@@ -92,15 +92,15 @@ public class Physic implements AbstractOptimization {
         private void addBorderForces(PhysicTire tire, Vector2D force) {
             long[] distances = {
                 tire.getX() - (config.distBorder + config.tireRadius), // Left border
-                (config.containerWidth - config.distBorder - config.tireRadius) - tire.getX(), // Right border  
+                (config.containerWidth - 2 * config.distBorder - config.tireRadius) - tire.getX(), // Right border  
                 tire.getY() - (config.distBorder + config.tireRadius), // Top border
-                (config.containerHeight - config.distBorder - config.tireRadius) - tire.getY() // Bottom border
+                (config.containerHeight - 2 * config.distBorder - config.tireRadius) - tire.getY() // Bottom border
             };
 
             long borderInfluence = config.distBorder * 3;
 
             for (int i = 0; i < distances.length; i++) {
-                if (distances[i] < borderInfluence) {
+                if (distances[i] < 0) {
                     // Calculate exponential repulsion force that increases as distance decreases
                     double borderForce = config.WALL_REPULSION_FORCE * 
                         Math.exp(Math.abs(distances[i]) / (double)borderInfluence);

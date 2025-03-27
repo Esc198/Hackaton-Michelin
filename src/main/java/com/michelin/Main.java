@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.michelin.Optimization.AbstractOptimization;
 import com.michelin.Optimization.HexagonalOptimization;
@@ -378,10 +379,10 @@ public class Main extends Application {
                                 double y = tire.getPositionY();
                                 double r = tire.getRadius();
 
-                                if (x - r >= distBorderSlider.getValue() * 1000 &&
-                                        x + r <= widthSlider.getValue() * 1000 - distBorderSlider.getValue() * 1000 &&
-                                        y - r >= distBorderSlider.getValue() * 1000 &&
-                                        y + r <= heightSlider.getValue() * 1000 - distBorderSlider.getValue() * 1000) {
+                                if (Tire.isValidTire(tire, (long) (widthSlider.getValue() * 1000),
+                                        (long) (heightSlider.getValue() * 1000),
+                                        (long) (distBorderSlider.getValue() * 1000), currentTires,
+                                        (long) (distTireSlider.getValue() * 1000))) {
                                     totalTireArea += Math.PI * r * r; // Área de un círculo
                                 }
                             }
@@ -395,7 +396,13 @@ public class Main extends Application {
                             // Check if optimization is complete
                             if (optimizationMethod.isFinished()) {
                                 // Dibujar los números en las ruedas
-                                drawNumber(gc, currentTires, (int) newWidth, (int) newHeight,
+                                List<Tire> validTires2 = optimizationMethod.getResult().stream()
+                                        .filter(tire -> Tire.isValidTire(tire, (long) (widthSlider.getValue() * 1000),
+                                                (long) (heightSlider.getValue() * 1000),
+                                                (long) (distBorderSlider.getValue() * 1000), currentTires,
+                                                (long) (distTireSlider.getValue() * 1000)))
+                                        .collect(Collectors.toList());
+                                drawNumber(gc, validTires2, (int) newWidth, (int) newHeight,
                                         (int) distBorderSlider.getValue());
                                 this.stop();
                             }
