@@ -240,22 +240,24 @@ public class Main extends Application {
 
             // Listener para el checkbox de mostrar franjas diagonales
             showStripesCheckbox.selectedProperty().addListener((obs, oldVal, newVal) -> {
-                gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-                gc.setFill(Color.LIGHTGRAY);
-                gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
-                gc.setStroke(Color.BLACK); // Asegurar que el borde sea negro
-                gc.strokeRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                if (newVal) {
+                    // Dibujar las franjas diagonales y las esquinas negras
+                    drawDiagonalStripes(gc, canvas.getWidth(), canvas.getHeight(), distBorderSlider.getValue(), true);
+                    drawCornerSquares(gc, canvas.getWidth(), canvas.getHeight(), distBorderSlider.getValue(), true);
+                } else {
+                    // Borrar las franjas diagonales y las esquinas negras
+                    gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                    gc.setFill(Color.LIGHTGRAY);
+                    gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                    gc.setStroke(Color.BLACK);
+                    gc.strokeRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-                // Dibujar las franjas diagonales y las esquinas negras
-                drawDiagonalStripes(gc, canvas.getWidth(), canvas.getHeight(), distBorderSlider.getValue(), newVal);
-                drawCornerSquares(gc, canvas.getWidth(), canvas.getHeight(), distBorderSlider.getValue(), newVal);
-
-                // Redibujar los neumáticos existentes con sus números
-                if (optimizationMethod != null) {
-                    List<Tire> currentTires = optimizationMethod.getResult();
-                    for (int i = 0; i < currentTires.size(); i++) {
-                        Tire tire = currentTires.get(i);
-                        tire.draw(gc);
+                    // Redibujar las ruedas existentes y sus números
+                    if (optimizationMethod != null) {
+                        List<Tire> currentTires = optimizationMethod.getResult();
+                        for (Tire tire : currentTires) {
+                            tire.draw(gc);
+                        }
                         drawNumber(gc, currentTires, (int) canvas.getWidth(), (int) canvas.getHeight(),
                                 (int) distBorderSlider.getValue());
                     }
@@ -360,7 +362,7 @@ public class Main extends Application {
                             // Draw current state and count valid tires
                             List<Tire> currentTires = optimizationMethod.getResult();
                             List<Tire> validTires = new ArrayList<>();
-                            
+
                             for (Tire tire : currentTires) {
                                 if (Tire.isValidTire(tire, (long) (widthSlider.getValue() * 1000),
                                         (long) (heightSlider.getValue() * 1000),
@@ -369,9 +371,9 @@ public class Main extends Application {
                                     validTires.add(tire);
                                 }
                             }
-                        
+
                             for (Tire tire : validTires) {
-                                    tire.draw(gc);
+                                tire.draw(gc);
 
                             }
 
@@ -412,7 +414,7 @@ public class Main extends Application {
                     if (optimizationMethod != null) {
                         optimizationMethod.stop();
                     }
-                    
+
                     ex.printStackTrace();
                 }
 
