@@ -73,7 +73,7 @@ public class MaxForceOptimization implements AbstractOptimization {
         
         int minWheelCount = bestBasicMethod();
         int maxWheelCount = getMaxWheelCount(tireRadius, containerWidth, containerHeight, distBorder, distTire);
-        for (int i = minWheelCount; i <= maxWheelCount; i++) {
+        for (int i = 0; i <= maxWheelCount; i++) {
             final int threadIndex = i - minWheelCount;
             
             this.bestConfiguration.put(threadIndex, new ArrayList<>());
