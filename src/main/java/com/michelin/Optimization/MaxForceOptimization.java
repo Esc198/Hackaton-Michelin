@@ -25,10 +25,9 @@ public class MaxForceOptimization implements AbstractOptimization {
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
     private final AtomicInteger remainingThreads = new AtomicInteger(0);
 
-    static int getMaxWheelCount(long tireRadius, long containerWidth, long containerHeight, long distBorder,
-            long distTire) {
+    private int getMaxWheelCount() {
         return (int) ((containerWidth - 2 * distBorder) * (containerHeight - 2 * distBorder) /
-                (Math.PI * Math.pow(tireRadius + distTire, 2)));
+                (Math.PI * Math.pow(tireRadius * 2 + distTire, 2)));
     }
 
     public MaxForceOptimization(long tireRadius, long containerWidth, long containerHeight, long distBorder,
@@ -43,7 +42,7 @@ public class MaxForceOptimization implements AbstractOptimization {
 
     }
 
-    public int bestBasicMethod() {
+    private int bestBasicMethod() {
         AbstractOptimization genericOptimization = new SquareGridOptimization(tireRadius, containerWidth,
                 containerHeight, distBorder, distTire);
         genericOptimization.setup();
@@ -81,7 +80,8 @@ public class MaxForceOptimization implements AbstractOptimization {
         this.ValidTires.clear();
 
         int minWheelCount = bestBasicMethod();
-        int maxWheelCount = getMaxWheelCount(tireRadius, containerWidth, containerHeight, distBorder, distTire);
+        int maxWheelCount = getMaxWheelCount() > minWheelCount ? getMaxWheelCount() : minWheelCount;
+
         System.out.println("Min wheel count: " + minWheelCount);
         System.out.println("Max wheel count: " + maxWheelCount);
         for (int i = minWheelCount; i <= maxWheelCount; i++) {

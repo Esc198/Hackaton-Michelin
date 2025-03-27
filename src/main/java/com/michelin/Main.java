@@ -1,10 +1,10 @@
 package com.michelin;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.michelin.Optimization.AbstractOptimization;
 import com.michelin.Optimization.HexagonalOptimization;
@@ -360,37 +360,31 @@ public class Main extends Application {
 
                             // Draw current state and count valid tires
                             List<Tire> currentTires = optimizationMethod.getResult();
-                            int validTires = 0;
-
+                            List<Tire> validTires = new ArrayList<>();
+                            
                             for (Tire tire : currentTires) {
-
                                 if (Tire.isValidTire(tire, (long) (widthSlider.getValue() * 1000),
                                         (long) (heightSlider.getValue() * 1000),
                                         (long) (distBorderSlider.getValue() * 1000), currentTires,
                                         (long) (distTireSlider.getValue() * 1000))) {
-                                    validTires++;
+                                    validTires.add(tire);
                                 }
+                            }
+                        
+                            for (Tire tire : validTires) {
+                                    tire.draw(gc);
 
-                                tire.draw(gc);
                             }
 
                             // Actualizar el contador
-                            tireCountLabel.setText("Neumáticos válidos: " + validTires);
-                            validTiresLabel.setText("Neumáticos válidos: " + validTires);
+                            tireCountLabel.setText("Neumáticos válidos: " + validTires.size());
+                            validTiresLabel.setText("Neumáticos válidos: " + validTires.size());
 
                             // Calcular la ocupación del contenedor
                             double totalTireArea = 0;
-                            for (Tire tire : currentTires) {
-                                double x = tire.getPositionX();
-                                double y = tire.getPositionY();
+                            for (Tire tire : validTires) {
                                 double r = tire.getRadius();
-
-                                if (Tire.isValidTire(tire, (long) (widthSlider.getValue() * 1000),
-                                        (long) (heightSlider.getValue() * 1000),
-                                        (long) (distBorderSlider.getValue() * 1000), currentTires,
-                                        (long) (distTireSlider.getValue() * 1000))) {
-                                    totalTireArea += Math.PI * r * r; // Área de un círculo
-                                }
+                                totalTireArea += Math.PI * r * r; // Área de un círculo
                             }
 
                             double containerArea = widthSlider.getValue() * heightSlider.getValue() * 1000000;
@@ -401,14 +395,7 @@ public class Main extends Application {
 
                             // Check if optimization is complete
                             if (optimizationMethod.isFinished()) {
-                                // Dibujar los números en las ruedas
-                                List<Tire> validTires2 = optimizationMethod.getResult().stream()
-                                        .filter(tire -> Tire.isValidTire(tire, (long) (widthSlider.getValue() * 1000),
-                                                (long) (heightSlider.getValue() * 1000),
-                                                (long) (distBorderSlider.getValue() * 1000), currentTires,
-                                                (long) (distTireSlider.getValue() * 1000)))
-                                        .collect(Collectors.toList());
-                                drawNumber(gc, validTires2, (int) newWidth, (int) newHeight,
+                                drawNumber(gc, validTires, (int) newWidth, (int) newHeight,
                                         (int) distBorderSlider.getValue());
                                 this.stop();
                             }
@@ -426,6 +413,7 @@ public class Main extends Application {
                     if (optimizationMethod != null) {
                         optimizationMethod.stop();
                     }
+                    
                     ex.printStackTrace();
                 }
 
