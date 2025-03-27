@@ -4,8 +4,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import com.michelin.Optimization.AbstractOptimization;
 import com.michelin.Optimization.HexagonalOptimization;
@@ -45,7 +43,6 @@ public class Main extends Application {
     private Label tireCountLabel;
     private Label occupancyLabel = new Label("Ocupación: 0%");
     private static ListView<String> coordinatesListView = new ListView<>();
-    private ExecutorService executorService = Executors.newCachedThreadPool(); // Gestor de hilos
 
     @Override
     public void start(Stage primaryStage) {
@@ -433,7 +430,6 @@ public class Main extends Application {
                 if (optimizationMethod != null) {
                     optimizationMethod.stop();
                 }
-                executorService.shutdownNow(); // Detener todos los hilos
                 Platform.exit();
             });
 
@@ -448,7 +444,6 @@ public class Main extends Application {
             if (optimizationMethod != null) {
                 optimizationMethod.stop();
             }
-            executorService.shutdownNow(); // Detener todos los hilos en caso de error
             e.printStackTrace();
             Platform.exit();
         }

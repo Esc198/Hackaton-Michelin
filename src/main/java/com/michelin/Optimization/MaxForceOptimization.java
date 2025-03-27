@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.michelin.utils.Tire;
 
@@ -19,7 +21,7 @@ public class MaxForceOptimization implements AbstractOptimization {
     private final ConcurrentHashMap<Integer, List<Tire>> bestConfiguration ;
     private final ConcurrentHashMap<Integer, Integer> ValidTires ;
     private ExecutorService executor;
-
+    private AtomicBoolean isRunning = new AtomicBoolean(true);
     
     static int getMaxWheelCount(long tireRadius, long containerWidth, long containerHeight, long distBorder, long distTire) {
         return (int) ((containerWidth - 2 * distBorder) * (containerHeight - 2 * distBorder) /
@@ -33,17 +35,17 @@ public class MaxForceOptimization implements AbstractOptimization {
         this.distTire = distTire;
         this.bestConfiguration = new ConcurrentHashMap<>();
         this.ValidTires = new ConcurrentHashMap<>();
+        
 
     }
 
 	@Override
 	public void setup() {
-        if (this.executor == null) {
-            this.executor = java.util.concurrent.Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        } else {
+        if (this.executor != null) {
             this.executor.shutdown();
-            this.executor = java.util.concurrent.Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         }
+        this.executor = java.util.concurrent.Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {this.stop();}));
         this.bestConfiguration.clear();
         this.ValidTires.clear();
         int maxWheelCount = getMaxWheelCount(tireRadius, containerWidth, containerHeight, distBorder, distTire);
@@ -56,7 +58,7 @@ public class MaxForceOptimization implements AbstractOptimization {
                 Physic physic = new Physic(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000, threadIndex);
                 physic.setup();
                 
-                while (!physic.isFinished()) {
+                while (!physic.isFinished() && isRunning.get()) {
                     physic.run();
                     List<Tire> result = physic.getResult();
                     int validTires = (int) result.stream().filter(tire -> Tire.isValidTire(tire, containerWidth, containerHeight, distBorder, result, distTire)).count();
@@ -67,7 +69,6 @@ public class MaxForceOptimization implements AbstractOptimization {
                 }
                 System.out.println("Thread " + threadIndex + " finished");
                 System.out.println("Valid tires: " + this.ValidTires.get(threadIndex));
-                System.out.println("Best configuration: " + this.bestConfiguration.get(threadIndex));
                 System.out.println("--------------------------------");
                 physic.stop();
             });
@@ -90,10 +91,43 @@ public class MaxForceOptimization implements AbstractOptimization {
 		return this.executor.isTerminated();
 	}
 
-	@Override
-	public void stop() {
-		this.executor.shutdown();
-	}
+    @Override
+    public void stop() {
+        try {
+            isRunning.set(false);
+
+            // Apagar el executor service
+            executor.shutdownNow();
+            if (!executor.awaitTermination(3, TimeUnit.SECONDS)) {
+                System.err.println("El executor no se cerró correctamente");
+            }
+            System.out.println("Executor cerrado correctamente");
+            System.out.println("Best configuration: " + this.getResult());
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Interrupción durante el cierre de la simulación");
+        } finally {
+            cleanupResources();
+        }
+    }
+
+    private void cleanupResources() {
+        try {
+            isRunning.set(false);
+
+            // Asegurar que el executor se cierre
+            if (executor != null && !executor.isShutdown()) {
+                executor.shutdownNow();
+            }
+
+            // Limpiar otras estructuras de datos
+            bestConfiguration.clear();
+
+        } catch (Exception e) {
+            System.err.println("Error durante la limpieza de recursos: " + e.getMessage());
+        }
+    }
 
 
 }
