@@ -21,7 +21,7 @@ public class MaxForceOptimization implements AbstractOptimization {
     private final ConcurrentHashMap<Integer, List<Tire>> bestConfiguration ;
     private final ConcurrentHashMap<Integer, Integer> ValidTires ;
     private ExecutorService executor;
-    private AtomicBoolean isRunning = new AtomicBoolean(true);
+    private final AtomicBoolean isRunning = new AtomicBoolean(true);
     
     static int getMaxWheelCount(long tireRadius, long containerWidth, long containerHeight, long distBorder, long distTire) {
         return (int) ((containerWidth - 2 * distBorder) * (containerHeight - 2 * distBorder) /
@@ -39,20 +39,44 @@ public class MaxForceOptimization implements AbstractOptimization {
 
     }
 
+
+    public int bestBasicMethod(){
+        AbstractOptimization genericOptimization = new SquareGridOptimization(tireRadius, containerWidth, containerHeight, distBorder, distTire);
+        genericOptimization.setup();
+        genericOptimization.run();
+        final List<Tire> result = genericOptimization.getResult();
+        int squareValidTires = (int) result.stream().filter(tire -> Tire.isValidTire(tire, containerWidth, containerHeight, distBorder, result, distTire)).count();
+
+        genericOptimization.stop();
+        genericOptimization = new HexagonalOptimization(tireRadius, containerWidth, containerHeight, distBorder, distTire);
+        genericOptimization.setup();
+        genericOptimization.run();
+        final List<Tire> result2 = genericOptimization.getResult();
+        int hexagonalValidTires = (int) result2.stream().filter(tire -> Tire.isValidTire(tire, containerWidth, containerHeight, distBorder, result2, distTire)).count();
+        genericOptimization.stop();
+        
+        
+        return Math.max(squareValidTires, hexagonalValidTires);
+    }
+
+
 	@Override
 	public void setup() {
         if (this.executor != null) {
             this.executor.shutdown();
         }
+        isRunning.set(true);
         this.executor = java.util.concurrent.Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {this.stop();}));
         this.bestConfiguration.clear();
         this.ValidTires.clear();
+        
+        int minWheelCount = bestBasicMethod();
         int maxWheelCount = getMaxWheelCount(tireRadius, containerWidth, containerHeight, distBorder, distTire);
-        for (int i = 0; i < maxWheelCount; i++) {
-            this.bestConfiguration.put(i, new ArrayList<>());
-            this.ValidTires.put(i, 0);
-            final int threadIndex = i;
+        for (int i = minWheelCount; i <= maxWheelCount; i++) {
+            final int threadIndex = i - minWheelCount;
+            this.bestConfiguration.put(threadIndex, new ArrayList<>());
+            this.ValidTires.put(threadIndex, 0);
             executor.execute(() -> {
                 
                 Physic physic = new Physic(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000, threadIndex);
