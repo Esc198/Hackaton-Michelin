@@ -82,7 +82,7 @@ public class MaxForceOptimization implements AbstractOptimization {
             this.ValidTires.put(threadIndex, 0);
             executor.execute(() -> {
                 try {
-                    Physic physic = new Physic(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000, threadIndex + minWheelCount);
+                    Physic physic = new Physic(tireRadius, containerWidth, containerHeight, distBorder, distTire, 300_000, threadIndex + minWheelCount);
                     physic.setup();
                     System.out.println("Thread " + threadIndex + " started");
                     while (!physic.isFinished() && isRunning.get()) {
@@ -95,7 +95,6 @@ public class MaxForceOptimization implements AbstractOptimization {
                         }
                     }
                     System.out.println("Thread " + threadIndex + " finished");
-                    System.out.println("Valid tires: " + this.ValidTires.get(threadIndex));
                     System.out.println("--------------------------------");
                     physic.stop();
                 } catch (Exception e) {
@@ -128,7 +127,7 @@ public class MaxForceOptimization implements AbstractOptimization {
 
 	@Override
 	public boolean isFinished() {
-		return this.executor.isTerminated();
+		return this.executor.isShutdown();
 	}
 
     @Override

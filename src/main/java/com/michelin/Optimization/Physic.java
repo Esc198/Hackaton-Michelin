@@ -18,7 +18,7 @@ public class Physic implements AbstractOptimization {
     }
 
     private static class SimulationConfig {
-        final long WALL_REPULSION_FORCE = 1000_000_000;
+        final long WALL_REPULSION_FORCE = 1_000_000_000;
         final long tireRadius;
         final long containerWidth;
         final long containerHeight;
@@ -77,7 +77,7 @@ public class Physic implements AbstractOptimization {
             long dx = tire1.getX() - tire2.getX();
             long dy = tire1.getY() - tire2.getY();
             double dist = Math.sqrt(dx * dx + dy * dy);
-            double minDist = (2.1 * config.tireRadius + config.distTire);
+            double minDist =  1.1 * (2 * config.tireRadius + config.distTire);
             
             if (Math.abs(dx) < 1) dx = (long)((Math.random() - 0.5) * 0.1);
             if (Math.abs(dy) < 1) dy = (long)((Math.random() - 0.5) * 0.1);
@@ -91,31 +91,33 @@ public class Physic implements AbstractOptimization {
 
         private void addBorderForces(PhysicTire tire, Vector2D force) {
             long[] distances = {
-                tire.getX() - (config.distBorder + config.tireRadius),
-                (config.containerWidth - config.distBorder - config.tireRadius) - tire.getX(),
-                tire.getY() - (config.distBorder + config.tireRadius),
-                (config.containerHeight - config.distBorder - config.tireRadius) - tire.getY()
+                tire.getX() - (config.distBorder + config.tireRadius), // Left border
+                (config.containerWidth - config.distBorder - config.tireRadius) - tire.getX(), // Right border  
+                tire.getY() - (config.distBorder + config.tireRadius), // Top border
+                (config.containerHeight - config.distBorder - config.tireRadius) - tire.getY() // Bottom border
             };
 
             long borderInfluence = config.distBorder * 3;
 
             for (int i = 0; i < distances.length; i++) {
                 if (distances[i] < borderInfluence) {
+                    // Calculate exponential repulsion force that increases as distance decreases
                     double borderForce = config.WALL_REPULSION_FORCE * 
-                        Math.exp(-distances[i] / (double)borderInfluence);
+                        Math.exp(Math.abs(distances[i]) / (double)borderInfluence);
                     
+                    // Apply much stronger force if tire crosses boundary
                     if (distances[i] <= 0) {
-                        borderForce *= 10.0;
+                        borderForce *= 100.0; // Increased multiplier for stronger boundary enforcement
                     }
                     
-                    if (i < 2) {
-                        force.x += i == 0 ? borderForce : -borderForce;
-                    } else {
-                        force.y += i == 2 ? -borderForce : borderForce;
+                    // Apply force in appropriate direction based on which border
+                    if (i < 2) { // Horizontal borders
+                        force.x += (i == 0) ? borderForce : -borderForce; // Left vs Right
+                    } else { // Vertical borders 
+                        force.y += (i == 2) ? borderForce : -borderForce; // Top vs Bottom
                     }
                 }
             }
-            
         }
 
         private void updateTirePhysics(PhysicTire tire, Vector2D force) {
@@ -139,11 +141,11 @@ public class Physic implements AbstractOptimization {
             long newX = tire.getX() + (long)(newSpeedX * config.DT);
             long newY = tire.getY() + (long)(newSpeedY * config.DT);
             
-            newX = Math.max(config.distBorder + config.tireRadius, 
+           /*  newX = Math.max(config.distBorder + config.tireRadius, 
                             Math.min(config.containerWidth - config.distBorder - config.tireRadius, newX));
             newY = Math.max(config.distBorder + config.tireRadius, 
                             Math.min(config.containerHeight - config.distBorder - config.tireRadius, newY));
-            
+            */
             tire.setX(newX);
             tire.setY(newY);
         }
