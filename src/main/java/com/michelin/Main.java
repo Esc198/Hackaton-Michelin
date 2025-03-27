@@ -79,8 +79,13 @@ public class Main extends Application {
             Tab controlsTab = new Tab("Controls", controls);
             controlsTab.setClosable(false);
 
+            // Crear un label para mostrar el número de neumáticos válidos
+            Label validTiresLabel = new Label("Neumáticos válidos: 0");
+            validTiresLabel.setStyle("-fx-font-weight: bold;");
+
             // Create the coordinates tab
-            VBox coordinatesBox = new VBox(5, new Label("Coordenadas de las ruedas:"), coordinatesListView);
+            VBox coordinatesBox = new VBox(5, validTiresLabel, new Label("Coordenadas de las ruedas:"),
+                    coordinatesListView);
             coordinatesBox.setPadding(new Insets(20));
             coordinatesBox.setStyle("-fx-background-color: rgba(255,255,255,0.8)");
             coordinatesBox.setMaxWidth(250);
@@ -371,6 +376,7 @@ public class Main extends Application {
 
                             // Actualizar el contador
                             tireCountLabel.setText("Neumáticos válidos: " + validTires);
+                            validTiresLabel.setText("Neumáticos válidos: " + validTires);
 
                             // Calcular la ocupación del contenedor
                             double totalTireArea = 0;
