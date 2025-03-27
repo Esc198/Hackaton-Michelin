@@ -79,8 +79,8 @@ public class Physic implements AbstractOptimization {
             double dist = Math.sqrt(dx * dx + dy * dy);
             double minDist = (2.1 * config.tireRadius + config.distTire);
             
-            if (Math.abs(dx) < 0.0001) dx = (long)((Math.random() - 0.5) * 0.1);
-            if (Math.abs(dy) < 0.0001) dy = (long)((Math.random() - 0.5) * 0.1);
+            if (Math.abs(dx) < 1) dx = (long)((Math.random() - 0.5) * 0.1);
+            if (Math.abs(dy) < 1) dy = (long)((Math.random() - 0.5) * 0.1);
             
             if (dist < minDist && dist > 0.0001) {
                 double magnitude = config.REPULSION_FORCE * Math.pow((minDist - dist) / minDist, 2);

@@ -75,38 +75,46 @@ public class MaxForceOptimization implements AbstractOptimization {
         int maxWheelCount = getMaxWheelCount(tireRadius, containerWidth, containerHeight, distBorder, distTire);
         for (int i = minWheelCount; i <= maxWheelCount; i++) {
             final int threadIndex = i - minWheelCount;
+            
             this.bestConfiguration.put(threadIndex, new ArrayList<>());
             this.ValidTires.put(threadIndex, 0);
             executor.execute(() -> {
-                
-                Physic physic = new Physic(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000, threadIndex);
-                physic.setup();
-                
-                while (!physic.isFinished() && isRunning.get()) {
-                    physic.run();
-                    List<Tire> result = physic.getResult();
-                    int validTires = (int) result.stream().filter(tire -> Tire.isValidTire(tire, containerWidth, containerHeight, distBorder, result, distTire)).count();
-                    if (validTires >= this.ValidTires.get(threadIndex)) {
-                        this.ValidTires.put(threadIndex, validTires);
-                        this.bestConfiguration.put(threadIndex, result);
+                try {
+                    Physic physic = new Physic(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000, threadIndex + minWheelCount);
+                    physic.setup();
+                    
+                    while (!physic.isFinished() && isRunning.get()) {
+                        physic.run();
+                        List<Tire> result = physic.getResult();
+                        int validTires = (int) result.stream().filter(tire -> Tire.isValidTire(tire, containerWidth, containerHeight, distBorder, result, distTire)).count();
+                        if (validTires >= this.ValidTires.get(threadIndex)) {
+                            this.ValidTires.put(threadIndex, validTires);
+                            this.bestConfiguration.put(threadIndex, result);
+                        }
                     }
+                    System.out.println("Thread " + threadIndex + " finished");
+                    System.out.println("Valid tires: " + this.ValidTires.get(threadIndex));
+                    System.out.println("--------------------------------");
+                    physic.stop();
+                } catch (Exception e) {
+                    System.out.println("Thread " + threadIndex + " finished with error: " + e.getMessage());
                 }
-                System.out.println("Thread " + threadIndex + " finished");
-                System.out.println("Valid tires: " + this.ValidTires.get(threadIndex));
-                System.out.println("--------------------------------");
-                physic.stop();
+                
             });
         }
+    }
 
-
-
-	}
 
 	@Override
 	public List<Tire> getResult() {
+		// Get the entry with the maximum number of valid tires from ValidTires map
+		// This finds the thread/configuration that produced the most valid tire placements
 		return this.bestConfiguration.get(this.ValidTires.entrySet().stream()
+				// Compare entries by their value (number of valid tires)
 				.max(Map.Entry.comparingByValue())
+				// Extract just the key (thread index) from the max entry
 				.map(Map.Entry::getKey)
+				// Default to 0 if no entries exist
 				.orElse(0));
 	}
 
