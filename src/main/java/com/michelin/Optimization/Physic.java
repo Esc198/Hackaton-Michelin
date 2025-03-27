@@ -56,7 +56,6 @@ public class Physic implements AbstractOptimization {
     public boolean isFinished() {
         return iteration >= maxIteration;
     }
-    
     @Override
     public void run() {
         tires.forEach(tire -> {
@@ -67,10 +66,14 @@ public class Physic implements AbstractOptimization {
 
     private Vector2D calculateForces(PhysicTire tire, List<PhysicTire> others) {
         Vector2D force = new Vector2D();
-        // Fuerzas entre ruedas
+        
+        // Escalar las fuerzas según el radio del neumático
+        long scaledRepulsionForce = (long)(REPULSION_FORCE * (tireRadius / 100.0));
+        
+        // Fuerzas entre ruedas con fuerza escalada
         others.stream()
-        .filter(other -> other != tire)
-        .forEach(other -> addTireRepulsion(tire, other, force));
+            .filter(other -> other != tire)
+            .forEach(other -> addTireRepulsion(tire, other, force, scaledRepulsionForce));
         
         // Fuerzas de bordes
         addBorderForces(tire, force);
@@ -78,19 +81,16 @@ public class Physic implements AbstractOptimization {
         return force;
     }
     
-    private void addTireRepulsion(PhysicTire tire1, PhysicTire tire2, Vector2D force) {
+    private void addTireRepulsion(PhysicTire tire1, PhysicTire tire2, Vector2D force, long scaledRepulsionForce) {
         long dx = tire1.getX() - tire2.getX();
         long dy = tire1.getY() - tire2.getY();
         double dist = Math.sqrt(dx * dx + dy * dy);
         double minDist =  1.1 * (2 * tireRadius + distTire);
         
-        if (Math.abs(dx) < 1) dx = (long)((Math.random() - 0.5) * 10);
-        if (Math.abs(dy) < 1) dy = (long)((Math.random() - 0.5) * 10);
-        
         if (dist < minDist && dist > 0.0001) {
-            double magnitude = REPULSION_FORCE * Math.pow((minDist - dist) / minDist, 2);
+            double magnitude = scaledRepulsionForce * Math.pow((minDist - dist) / minDist, 2);
             force.x += (long)((dx / dist) * magnitude);
-            force.y += (long)((dy / dist) * magnitude);
+            force.y += (long)((dy / dist) * magnitude); 
         }
     }
     
