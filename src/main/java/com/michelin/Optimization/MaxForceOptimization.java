@@ -73,7 +73,9 @@ public class MaxForceOptimization implements AbstractOptimization {
         
         int minWheelCount = bestBasicMethod();
         int maxWheelCount = getMaxWheelCount(tireRadius, containerWidth, containerHeight, distBorder, distTire);
-        for (int i = 0; i <= maxWheelCount; i++) {
+        System.out.println("Min wheel count: " + minWheelCount);
+        System.out.println("Max wheel count: " + maxWheelCount);
+        for (int i = minWheelCount; i <= maxWheelCount; i++) {
             final int threadIndex = i - minWheelCount;
             
             this.bestConfiguration.put(threadIndex, new ArrayList<>());
@@ -82,7 +84,7 @@ public class MaxForceOptimization implements AbstractOptimization {
                 try {
                     Physic physic = new Physic(tireRadius, containerWidth, containerHeight, distBorder, distTire, 1_000_000, threadIndex + minWheelCount);
                     physic.setup();
-                    
+                    System.out.println("Thread " + threadIndex + " started");
                     while (!physic.isFinished() && isRunning.get()) {
                         physic.run();
                         List<Tire> result = physic.getResult();
@@ -109,13 +111,19 @@ public class MaxForceOptimization implements AbstractOptimization {
 	public List<Tire> getResult() {
 		// Get the entry with the maximum number of valid tires from ValidTires map
 		// This finds the thread/configuration that produced the most valid tire placements
-		return this.bestConfiguration.get(this.ValidTires.entrySet().stream()
+		return this.bestConfiguration.get(
+            
+        
+        this.ValidTires.entrySet().stream()
 				// Compare entries by their value (number of valid tires)
 				.max(Map.Entry.comparingByValue())
 				// Extract just the key (thread index) from the max entry
 				.map(Map.Entry::getKey)
 				// Default to 0 if no entries exist
-				.orElse(0));
+				.orElse(0)
+                
+                
+                );
 	}
 
 	@Override

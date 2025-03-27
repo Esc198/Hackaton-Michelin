@@ -190,7 +190,6 @@ public class Physic implements AbstractOptimization {
             long randomY = (long) (Math.random() * (config.containerHeight - 2 * config.distBorder) + config.distBorder);
             tires.add(new PhysicTire("Tire" + i, config.tireRadius, randomX, randomY));
         }
-        System.out.println("Iniciando simulación con " + numTires + " ruedas");
     }
 
     @Override
